@@ -106,6 +106,49 @@
   .socials a:hover { background: var(--portal); }
   .socials:empty { display: none; }
 
+  .live { margin: 18px 0 0; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .95rem; }
+  .live[hidden] { display: none; }
+  .dot { width: 10px; height: 10px; background: #5ee67a; box-shadow: 0 0 0 3px rgba(94,230,122,.25); }
+  .live b { color: var(--bone); font-weight: 600; }
+
+  /* map art wall: item frames on an obsidian wall */
+  .wall {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px;
+    padding: 26px; background:
+      repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,.035) 31px 32px),
+      repeating-linear-gradient(90deg, transparent 0 31px, rgba(255,255,255,.035) 31px 32px),
+      #120c18;
+    border: 4px solid #0c0810;
+  }
+  .wall figure { margin: 0; }
+  .wall .item-frame { padding: 9px; box-shadow: inset 0 0 0 3px var(--frame-dark), 5px 5px 0 rgba(0,0,0,.5); }
+  .wall figcaption { margin-top: 10px; font-size: .9rem; color: var(--muted); }
+  .wall-note { margin: 18px 0 0; color: var(--muted); max-width: 60ch; }
+
+  .server { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: start; }
+  .server p { margin: 0 0 14px; color: var(--muted); max-width: 52ch; }
+  .server ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+  .server li { padding: 14px 16px; background: var(--obsidian-2); border-left: 6px solid var(--magenta); }
+  .server li strong { display: block; font-weight: 600; }
+  .server li span { color: var(--muted); font-size: .95rem; }
+
+  .faq { max-width: 720px; }
+  .faq details { border-bottom: 2px solid var(--obsidian-2); }
+  .faq summary {
+    cursor: pointer; list-style: none; padding: 18px 40px 18px 0; position: relative;
+    font-weight: 600; font-size: 1.1rem;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: "+"; position: absolute; right: 6px; top: 12px;
+    font: 700 1.6rem/1 "Pixelify Sans", sans-serif; color: var(--magenta);
+  }
+  .faq details[open] summary::after { content: "–"; }
+  .faq details p { margin: 0 0 20px; color: var(--muted); max-width: 60ch; }
+
+  .final { text-align: center; }
+  .final p { color: var(--muted); margin: 0 auto 28px; max-width: 44ch; }
+
   footer { border-top: 2px solid var(--obsidian-2); }
   footer p { max-width: 1080px; margin: 0 auto; padding: 28px 20px 40px; color: #8f80a6; font-size: .9rem; }
 
@@ -115,6 +158,8 @@
     .item-frame { max-width: 360px; }
     section { padding: 56px 16px; }
     .pillars { grid-template-columns: 1fr; }
+    .wall { grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 16px; }
+    .server { grid-template-columns: 1fr; gap: 28px; }
     .pillar, .pillar + .pillar { padding: 22px 0 18px; border-left: 0; }
   }
   @media (prefers-reduced-motion: reduce) { .join { transition: none; } }
@@ -135,6 +180,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18.1a19.8 19.8 0 0 0 6 3l1.3-2a12.8 12.8 0 0 1-2-1l.5-.4a14.1 14.1 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.7 19.7 0 0 0 6-3c.5-5.2-.8-9.7-3.6-13.7ZM8 15.4c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.6 8 10.6s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z"/></svg>
         Join the Discord
       </a>
+      <p class="live" id="live" hidden><span class="dot" aria-hidden="true"></span><span><b id="online"></b> online now, <b id="members"></b> members</span></p>
       <p class="ip">We play on <code>donutsmp.net</code></p>
     </div>
   </div>
@@ -159,6 +205,17 @@
     </div>
   </section>
 
+  <section aria-labelledby="art">
+    <h2 id="art">Our map art</h2>
+    <div class="wall">
+      <figure><div class="item-frame"><img src="assets/art-portal.png" width="128" height="128" loading="lazy" alt="Map art: the clan name inside a nether portal framed in obsidian"></div><figcaption>Portal</figcaption></figure>
+      <figure><div class="item-frame"><img src="assets/art-crystal.png" width="128" height="128" loading="lazy" alt="Map art: a glowing obsidian crystal over a starry sky"></div><figcaption>Crystal</figcaption></figure>
+      <figure><div class="item-frame"><img src="assets/art-crest.png" width="128" height="128" loading="lazy" alt="Map art: a shield with crossed netherite swords and a banner"></div><figcaption>Crest</figcaption></figure>
+      <figure><div class="item-frame"><img src="assets/art-end.png" width="128" height="128" loading="lazy" alt="Map art: obsidian pillars with end crystals"></div><figcaption>End Pillars</figcaption></figure>
+    </div>
+    <p class="wall-note">Our clan map art designs. The first one is going up on DonutSMP now, placed block by block. Want to help build the rest? Say so in the Discord.</p>
+  </section>
+
   <div class="steps-wrap">
     <section aria-labelledby="join">
       <h2 id="join">How to join</h2>
@@ -169,6 +226,38 @@
       </ol>
     </section>
   </div>
+
+  <section aria-labelledby="server">
+    <div class="server">
+      <div>
+        <h2 id="server">Our own server is coming</h2>
+        <p>We're building the clan first. When it's big enough, the Obsidian Pact gets its own Minecraft server, made around clans, PvP and events from day one.</p>
+        <p>Members in the Discord get in first and help decide what it looks like.</p>
+      </div>
+      <ul>
+        <li><strong>Early access</strong><span>Discord members join before the public launch.</span></li>
+        <li><strong>A say in the rules</strong><span>Game modes and features get voted on in the Discord.</span></li>
+        <li><strong>Founder recognition</strong><span>Everyone who helped build the clan gets marked as a founder.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="faq">
+    <h2 id="faq">Questions</h2>
+    <div class="faq">
+      <details><summary>Is it free to join?</summary><p>Yes. Join the Discord, post your in-game name, and you're in.</p></details>
+      <details><summary>Do I have to be good at PvP?</summary><p>No. Plenty of members mostly build. If you want to get better at PvP, we practice together.</p></details>
+      <details><summary>Which server do you play on?</summary><p>DonutSMP, at <code>donutsmp.net</code>. Our own server is on the way.</p></details>
+      <details><summary>Do you sell items or money?</summary><p>No. We never buy or sell DonutSMP items, money or accounts, and we never will.</p></details>
+      <details><summary>How do I find you in game?</summary><p>Ask in the Discord and someone will meet you, or look for our map art around the server.</p></details>
+    </div>
+  </section>
+
+  <section class="final" aria-labelledby="cta">
+    <h2 id="cta">Ready to join?</h2>
+    <p>It takes a minute. Everything starts in the Discord.</p>
+    <a class="join" href="discord/">Join the Discord</a>
+  </section>
 
   <section aria-labelledby="follow" id="follow-section">
     <h2 id="follow">Follow us</h2>
@@ -194,6 +283,18 @@
     box.appendChild(a);
   });
   if (!box.children.length) document.getElementById("follow-section").remove();
+
+  // Live Discord numbers from the public invite. Hidden until the server is big enough to show off.
+  const SHOW_COUNTS_FROM = 25;
+  fetch("https://discord.com/api/v10/invites/c9HDNeTX4z?with_counts=true")
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(d => {
+      if ((d.approximate_member_count || 0) < SHOW_COUNTS_FROM) return;
+      document.getElementById("members").textContent = d.approximate_member_count.toLocaleString();
+      document.getElementById("online").textContent = d.approximate_presence_count.toLocaleString();
+      document.getElementById("live").hidden = false;
+    })
+    .catch(() => {});
 
   // Nether portal swirl, drawn at low resolution and scaled up with pixelated rendering.
   (() => {
