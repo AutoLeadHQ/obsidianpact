@@ -1,0 +1,23 @@
+<div class="gate" id="gate" hidden>
+  <h1>Admin</h1>
+  <p class="muted">Open your private admin link, or paste the admin key here.</p>
+  <form id="gate-form" class="row"><input class="in" id="gate-key" type="password" autocomplete="off" placeholder="Admin key" style="flex:1"><button class="pbtn primary">Open</button></form>
+  <p class="err" id="gate-err"></p>
+</div>
+
+<div id="app" hidden>
+  <div class="ad-top"><div class="ad-top-in">
+    <a class="brand" href="../"><img src="../assets/favicon.png" alt="" width="26" height="26">Pact Admin</a>
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+      <button role="tab" data-tab="live">Live <span class="badge" id="live-badge" hidden></span></button>
+      <button role="tab" data-tab="visitors">Visitors</button>
+      <button role="tab" data-tab="discord">Discord joins</button>
+      <button role="tab" data-tab="members">Members</button>
+      <button role="tab" data-tab="bases">Bases</button>
+      <button role="tab" data-tab="videos">Videos</button>
+    </div>
+  </div></div>
+  <main class="ad-main" id="view"></main>
+</div>
+<div class="tip" id="tip" hidden></div>

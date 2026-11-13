@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin | The Obsidian Pact</title>
+<meta name="description" content="Owner dashboard.">
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:title" content="Admin | The Obsidian Pact">
+<meta property="og:description" content="Owner dashboard.">
+<meta property="og:image" content="https://obsidianpact.net/assets/og.png">
+<meta property="og:url" content="https://obsidianpact.net/admin/">
+<meta property="og:site_name" content="The Obsidian Pact">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1a1222">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="icon" href="../assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Sora:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  body { font-size: .95rem; }
+  .ad-top { position: sticky; top: 0; z-index: 10; background: rgba(26,18,34,.96); border-bottom: 2px solid var(--obsidian-2); }
+  .ad-top-in { max-width: 1240px; margin: 0 auto; padding: 10px 18px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .ad-top .brand { font-size: 1.1rem; }
+  .tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+  .tabs button { background: none; border: 0; color: var(--muted); font: 600 .9rem/1 "Sora", sans-serif; padding: 9px 12px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--portal); color: #fff; }
+  .tabs button:hover { color: var(--bone); }
+  .tabs .badge { display: inline-block; min-width: 18px; padding: 2px 5px; margin-left: 4px; background: var(--good); color: #0b2410; font-size: .75rem; }
+  .ad-main { max-width: 1240px; margin: 0 auto; padding: 22px 18px 60px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .seg { display: inline-flex; border: 2px solid var(--obsidian-3); }
+  .seg button { background: none; border: 0; color: var(--muted); padding: 8px 12px; font: 600 .85rem/1 "Sora", sans-serif; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--obsidian-3); color: var(--bone); }
+  .chk { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); cursor: pointer; }
+  .muted { color: var(--dim); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .tile { background: var(--obsidian-2); padding: 14px 16px; }
+  .tile .k { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  .tile .v { font: 700 2rem/1.1 "Pixelify Sans", sans-serif; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .tile .s { color: var(--dim); font-size: .8rem; margin-top: 2px; }
+  .panel { background: var(--obsidian-2); padding: 16px 18px; margin-bottom: 16px; }
+  .panel h3 { margin: 0 0 12px; font: 700 1.2rem/1.1 "Pixelify Sans", sans-serif; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .bars li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; position: relative; padding: 5px 8px; font-size: .88rem; }
+  .bars li::before { content: ""; position: absolute; inset: 0; width: var(--w); background: rgba(127,63,178,.35); z-index: 0; }
+  .bars li > * { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bars b { font-variant-numeric: tabular-nums; }
+  .chart { position: relative; height: 200px; display: flex; align-items: flex-end; gap: 2px; padding: 0 0 22px; border-bottom: 1px solid var(--obsidian-3); }
+  .chart .col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; position: relative; cursor: default; }
+  .chart .col .b { background: var(--magenta); border-radius: 4px 4px 0 0; min-height: 0; }
+  .chart .col:hover .b { background: #d07ef0; }
+  .chart .col .lbl { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: .7rem; color: var(--dim); white-space: nowrap; }
+  .tip { position: fixed; z-index: 30; pointer-events: none; background: #0f0a14; border: 1px solid var(--obsidian-3); padding: 8px 10px; font-size: .82rem; box-shadow: 4px 4px 0 rgba(0,0,0,.5); }
+  .tip[hidden] { display: none; }
+  table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  th { text-align: left; color: var(--dim); font-weight: 600; padding: 8px; border-bottom: 2px solid var(--obsidian-3); white-space: nowrap; }
+  td { padding: 8px; border-bottom: 1px solid var(--obsidian-3); vertical-align: top; }
+  tr.click { cursor: pointer; }
+  tr.click:hover td { background: rgba(255,255,255,.03); }
+  .scroll { overflow-x: auto; }
+  .pill { display: inline-block; padding: 2px 7px; font-size: .75rem; font-weight: 600; background: var(--obsidian-3); color: var(--muted); }
+  .pill.new { background: #1e4d2a; color: #b8f5c6; }
+  .pill.ret { background: #22306b; color: #c6d0ff; }
+  .pill.join { background: var(--magenta); color: #fff; }
+  .pill.left { background: #5a1f2b; color: #ffc2cd; }
+  .av { width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 8px; }
+  .timeline { margin: 4px 0 8px; padding-left: 18px; color: var(--muted); }
+  input.in, textarea.in, select.in { background: var(--obsidian); border: 2px solid var(--obsidian-3); color: var(--bone); font: inherit; padding: 8px 10px; width: 100%; }
+  textarea.in { min-height: 70px; resize: vertical; }
+  input.in:focus, textarea.in:focus { outline: none; border-color: var(--portal); }
+  .pbtn { background: var(--obsidian-3); color: var(--bone); border: 0; font: 600 .85rem/1 "Sora", sans-serif; padding: 9px 13px; cursor: pointer; white-space: nowrap; }
+  .pbtn:hover { background: var(--portal); }
+  .pbtn.primary { background: var(--magenta); color: #fff; }
+  .pbtn.danger:hover, .pbtn.danger.armed { background: #b3263f; color: #fff; }
+  .pbtn:disabled { opacity: .5; cursor: wait; }
+  .form { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  .form .full { grid-column: 1 / -1; }
+  .form label { display: grid; gap: 4px; color: var(--muted); font-size: .85rem; }
+  .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .item { background: var(--obsidian); padding: 12px; display: grid; gap: 8px; align-content: start; }
+  .item img.thumb, .item video.thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; background: #000; }
+  .mrow { display: grid; grid-template-columns: 56px 160px 1fr 90px 70px auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--obsidian-3); }
+  .mrow img { width: 48px; height: 48px; image-rendering: pixelated; }
+  .note { padding: 12px 14px; background: #2b2410; border-left: 4px solid #e6c35e; color: #f3e6bd; margin-bottom: 16px; }
+  .ok { color: var(--good); }
+  .err { color: #ff8fa3; }
+  .gate { max-width: 460px; margin: 12vh auto; padding: 0 18px; }
+  .gate h1 { font: 700 2.2rem/1 "Pixelify Sans", sans-serif; }
+  @media (max-width: 760px) {
+    .form { grid-template-columns: 1fr; }
+    .mrow { grid-template-columns: 48px 1fr; }
+    .mrow > :nth-child(n+3) { grid-column: 1 / -1; }
+  }
+</style>
+
+</head>
+<body>
+
+<div class="gate" id="gate" hidden>
+  <h1>Admin</h1>
+  <p class="muted">Open your private admin link, or paste the admin key here.</p>
+  <form id="gate-form" class="row"><input class="in" id="gate-key" type="password" autocomplete="off" placeholder="Admin key" style="flex:1"><button class="pbtn primary">Open</button></form>
+  <p class="err" id="gate-err"></p>
+</div>
+
+<div id="app" hidden>
+  <div class="ad-top"><div class="ad-top-in">
+    <a class="brand" href="../"><img src="../assets/favicon.png" alt="" width="26" height="26">Pact Admin</a>
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+      <button role="tab" data-tab="live">Live <span class="badge" id="live-badge" hidden></span></button>
+      <button role="tab" data-tab="visitors">Visitors</button>
+      <button role="tab" data-tab="discord">Discord joins</button>
+      <button role="tab" data-tab="members">Members</button>
+      <button role="tab" data-tab="bases">Bases</button>
+      <button role="tab" data-tab="videos">Videos</button>
+    </div>
+  </div></div>
+  <main class="ad-main" id="view"></main>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+
+<script src="../assets/site.js"></script>
+<script>
+(() => {
+  const { API, esc } = OP;
+  const $ = (s, el = document) => el.querySelector(s);
+  const view = $("#view");
+  const num = (n) => Number(n || 0).toLocaleString();
+  const ago = (iso) => {
+    const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
+    if (s < 60) return "just now"; if (s < 3600) return Math.floor(s / 60) + "m ago";
+    if (s < 86400) return Math.floor(s / 3600) + "h ago"; return Math.floor(s / 86400) + "d ago";
+  };
+  const dur = (sec) => { sec = Math.round(sec); if (sec < 60) return sec + "s"; const m = Math.floor(sec / 60); if (m < 60) return m + "m " + (sec % 60) + "s"; return Math.floor(m / 60) + "h " + (m % 60) + "m"; };
+  const when = (iso) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const where = (s) => [s.city, s.region, s.country].filter(Boolean).join(", ") || "Unknown";
+  const guest = (vid) => "Guest " + vid.replace(/-/g, "").slice(0, 5).toUpperCase();
+  const page = (p) => (p || "/").replace(/^\/preview/, "") || "/";
+
+  // ---------- key: from the private link (#k=...) or typed once; remembered on this device
+  const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch {} };
+  const fromHash = new URLSearchParams(location.hash.slice(1)).get("k");
+  if (fromHash) { ls("op_admin", fromHash); history.replaceState(null, "", location.pathname); }
+  let KEY = ls("op_admin");
+  ls("op_owner", "1"); // your own visits to the site get labelled as you, and left out of the numbers
+
+  async function api(op, body = {}) {
+    const r = await fetch(API + "?a=admin", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-key": KEY || "" }, body: JSON.stringify({ op, ...body }) });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401) { ls("op_admin", null); KEY = null; showGate("That key didn't work."); throw new Error("auth"); }
+    if (!r.ok) throw new Error(d.error || "Request failed");
+    return d;
+  }
+  function showGate(msg = "") { $("#app").hidden = true; $("#gate").hidden = false; $("#gate-err").textContent = msg; }
+  $("#gate-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const v = $("#gate-key").value.trim();
+    KEY = (v.match(/#k=([a-f0-9]+)/) || [, v])[1];
+    try { await api("ping"); ls("op_admin", KEY); start(); } catch {}
+  });
+
+  // ---------- tooltip
+  const tip = $("#tip");
+  document.addEventListener("mousemove", (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    if (!t) { tip.hidden = true; return; }
+    tip.innerHTML = t.dataset.tip; tip.hidden = false;
+    const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8);
+    tip.style.left = x + "px"; tip.style.top = (e.clientY - tip.offsetHeight - 12) + "px";
+  });
+
+  // ---------- tabs
+  let tab = "overview", timer = null;
+  const prefs = { days: 7, owner: false, preview: false };
+  $("#tabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) go(b.dataset.tab); });
+  function go(t) {
+    tab = t; clearInterval(timer);
+    document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === t));
+    view.innerHTML = `<p class="muted">Loading…</p>`;
+    ({ overview, live, visitors, discord, members, bases, videos })[t]().catch(showErr);
+  }
+  const showErr = (e) => { if (e.message !== "auth") view.innerHTML = `<p class="err">${esc(e.message)}</p>`; };
+  const filters = () => `<label class="chk"><input type="checkbox" id="f-owner" ${prefs.owner ? "checked" : ""}> Include my own visits</label>
+    <label class="chk"><input type="checkbox" id="f-preview" ${prefs.preview ? "checked" : ""}> Include preview pages</label>`;
+  const bindFilters = (redo) => {
+    $("#f-owner").onchange = (e) => { prefs.owner = e.target.checked; redo(); };
+    $("#f-preview").onchange = (e) => { prefs.preview = e.target.checked; redo(); };
+  };
+  const barList = (rows, label = (k) => esc(k)) => {
+    if (!rows.length) return `<p class="muted">Nothing yet.</p>`;
+    const max = Math.max(...rows.map((r) => r[1]));
+    return `<ul class="bars">${rows.map(([k, n]) => `<li style="--w:${(n / max) * 100}%"><span title="${esc(k)}">${label(k)}</span><b>${num(n)}</b></li>`).join("")}</ul>`;
+  };
+
+  // ---------- Overview
+  async function overview() {
+    const d = await api("stats", prefs);
+    const t = d.totals;
+    const max = Math.max(1, ...d.perDay.map((x) => x.visitors));
+    const step = Math.ceil(d.perDay.length / 10);
+    view.innerHTML = `
+      <div class="row">
+        <div class="seg" id="range">${[1, 7, 30, 90].map((n) => `<button data-d="${n}" aria-pressed="${prefs.days === n}">${n === 1 ? "Today" : n + " days"}</button>`).join("")}</div>
+        ${filters()}
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Visitors</div><div class="v">${num(t.visitors)}</div><div class="s">${num(t.sessions)} visits</div></div>
+        <div class="tile"><div class="k">Page views</div><div class="v">${num(t.views)}</div><div class="s">${t.sessions ? (t.views / t.sessions).toFixed(1) : 0} per visit</div></div>
+        <div class="tile"><div class="k">Clicked Join Discord</div><div class="v">${num(t.discordClickers)}</div><div class="s">${t.visitors ? Math.round((t.discordClickers / t.visitors) * 100) : 0}% of visitors</div></div>
+        <div class="tile"><div class="k">Came back</div><div class="v">${num(t.returning)}</div><div class="s">returning visitors</div></div>
+        <div class="tile"><div class="k">Avg time on site</div><div class="v">${dur(t.avgTime)}</div><div class="s">per visit</div></div>
+      </div>
+      <div class="panel"><h3>Visitors per day</h3>
+        <div class="chart">${d.perDay.map((x, i) => `<div class="col" data-tip="<b>${esc(new Date(x.day + "T12:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }))}</b><br>${x.visitors} visitors · ${x.views} views<br>${x.clicks} Join clicks"><div class="b" style="height:${(x.visitors / max) * 100}%"></div>${i % step === 0 || i === d.perDay.length - 1 ? `<span class="lbl">${new Date(x.day + "T12:00").toLocaleDateString(undefined, { month: "numeric", day: "numeric" })}</span>` : ""}</div>`).join("")}</div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h3>Pages</h3>${barList(d.pages)}</div>
+        <div class="panel"><h3>Where they came from</h3>${barList(d.sources)}</div>
+        <div class="panel"><h3>Countries</h3>${barList(d.countries)}</div>
+        <div class="panel"><h3>Cities</h3>${barList(d.cities)}</div>
+        <div class="panel"><h3>Devices</h3>${barList(d.devices)}</div>
+        <div class="panel"><h3>Browsers</h3>${barList(d.browsers)}</div>
+        <div class="panel"><h3>Clicks</h3>${barList(d.events, (k) => esc(k.replace(/^discord_click/, "Join Discord").replace(/^video_play/, "Played video").replace(/^base_open/, "Opened base").replace(/^social_click/, "Social link")))}</div>
+      </div>`;
+    $("#range").onclick = (e) => { const b = e.target.closest("button"); if (b) { prefs.days = Number(b.dataset.d); overview().catch(showErr); } };
+    bindFilters(() => overview().catch(showErr));
+  }
+
+  // ---------- Live
+  async function live() {
+    const render = async () => {
+      const d = await api("live", prefs);
+      const S = d.sessions.filter((s) => prefs.owner || !s.is_owner);
+      const people = new Set(S.map((s) => s.visitor_id)).size;
+      $("#live-badge").hidden = !people; $("#live-badge").textContent = people;
+      if (tab !== "live") return;
+      view.innerHTML = `
+        <div class="row"><h3 class="px" style="margin:0;font-size:1.5rem">${people} ${people === 1 ? "person" : "people"} on the site right now</h3><span class="muted">Updates every 10 seconds.</span></div>
+        <div class="row">${filters()}</div>
+        <div class="panel scroll">${S.length ? `<table><thead><tr><th>Who</th><th>Looking at</th><th>Where</th><th>Device</th><th>Came from</th><th>On site</th><th>Pages</th><th></th></tr></thead><tbody>
+          ${S.map((s) => `<tr><td>${s.is_owner ? "<b>You</b>" : esc(guest(s.visitor_id))}</td><td>${esc(page(s.path))}</td><td>${esc(where(s))}</td><td>${esc([s.device, s.browser].filter(Boolean).join(" / "))}</td><td>${esc(s.source || "")}</td><td>${dur((d.now - Date.parse(s.started_at)) / 1000)}</td><td>${s.pages}</td><td>${s.discord_click ? '<span class="pill join">Clicked Join</span>' : ""}</td></tr>`).join("")}
+        </tbody></table>` : `<p class="muted">Nobody on the site this minute.</p>`}</div>`;
+      bindFilters(render);
+    };
+    await render();
+    timer = setInterval(() => render().catch(() => {}), 10000);
+  }
+
+  // ---------- Visitors
+  async function visitors() {
+    const d = await api("visitors", { ...prefs, limit: 300 });
+    view.innerHTML = `
+      <div class="row">${filters()}<span class="muted">Newest first. Click a visit to see every page they opened.</span></div>
+      <div class="panel scroll"><table><thead><tr><th>When</th><th>Who</th><th>Where</th><th>Device</th><th>Came from</th><th>Landed on</th><th>Pages</th><th>Time</th><th></th></tr></thead><tbody id="vrows">
+      ${d.sessions.map((s) => `<tr class="click" data-id="${esc(s.id)}"><td>${when(s.started_at)}</td>
+        <td>${s.is_owner ? "<b>You</b>" : esc(guest(s.visitor_id))} ${s.visits > 1 ? `<span class="pill ret">visit ${s.visits}</span>` : `<span class="pill new">new</span>`}</td>
+        <td>${esc(where(s))}</td><td>${esc([s.device, s.os].filter(Boolean).join(" / "))}</td><td>${esc(s.source || "")}</td>
+        <td>${esc(page(s.landing))}</td><td>${s.pages}</td><td>${dur((Date.parse(s.last_seen) - Date.parse(s.started_at)) / 1000)}</td>
+        <td>${s.discord_click ? '<span class="pill join">Clicked Join</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="9" class="muted">No visits yet.</td></tr>`}
+      </tbody></table></div>`;
+    bindFilters(() => visitors().catch(showErr));
+    $("#vrows").addEventListener("click", async (e) => {
+      const tr = e.target.closest("tr[data-id]"); if (!tr) return;
+      if (tr.nextElementSibling && tr.nextElementSibling.classList.contains("detail")) { tr.nextElementSibling.remove(); return; }
+      const ev = await api("session", { id: tr.dataset.id });
+      const label = (x) => x.kind === "pageview" ? `Opened <b>${esc(page(x.path))}</b>` : x.kind === "discord_click" ? `<b>Clicked Join Discord</b> (${esc(x.detail)})` : x.kind === "video_play" ? `Played video: ${esc(x.detail)}` : x.kind === "base_open" ? `Opened base: ${esc(x.detail)}` : esc(x.kind + " " + (x.detail || ""));
+      tr.insertAdjacentHTML("afterend", `<tr class="detail"><td colspan="9"><ol class="timeline">${ev.events.map((x) => `<li>${new Date(x.at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" })}: ${label(x)}</li>`).join("")}</ol></td></tr>`);
+    });
+  }
+
+  // ---------- Discord joins
+  async function discord() {
+    const d = await api("discord");
+    const pub = await OP.load().catch(() => null);
+    const people = d.members.filter((m) => !m.left_at);
+    const week = people.filter((m) => m.joined_at && Date.now() - Date.parse(m.joined_at) < 7 * 864e5).length;
+    const full = d.members.length > 0 && d.members.some((m) => !m.ign);
+    // daily member counts from the hourly snapshots
+    const byDay = new Map(); d.counts.forEach((c) => byDay.set(new Date(c.hour).toLocaleDateString("en-CA"), c.members));
+    const days = [...byDay.entries()];
+    const max = Math.max(1, ...days.map((x) => x[1]));
+    view.innerHTML = `
+      ${full ? "" : `<div class="note"><b>Only members who set their IGN show here.</b> To see everyone who joins, turn on <b>Server Members Intent</b> for Pact Bot: <a href="https://discord.com/developers/applications/1570205930426081400/bot" target="_blank" rel="noopener">open the Bot page</a>, flip the switch under Privileged Gateway Intents, then click Save Changes. The list fills in within 10 minutes.</div>`}
+      <div class="tiles">
+        <div class="tile"><div class="k">Discord members</div><div class="v">${num(pub?.discord?.members)}</div><div class="s">right now</div></div>
+        <div class="tile"><div class="k">Online</div><div class="v">${num(pub?.discord?.online)}</div><div class="s">right now</div></div>
+        <div class="tile"><div class="k">Joined this week</div><div class="v">${full ? num(week) : "–"}</div><div class="s">last 7 days</div></div>
+        <div class="tile"><div class="k">Set their IGN</div><div class="v">${num(d.members.filter((m) => m.ign).length)}</div><div class="s">on the members page</div></div>
+      </div>
+      <div class="panel"><h3>Member count by day</h3>${days.length > 1 ? `<div class="chart">${days.map(([day, n], i) => `<div class="col" data-tip="<b>${esc(day)}</b><br>${n} members"><div class="b" style="height:${(n / max) * 100}%"></div>${i % Math.ceil(days.length / 10) === 0 ? `<span class="lbl">${day.slice(5)}</span>` : ""}</div>`).join("")}</div>` : `<p class="muted">Tracking started today. A chart builds up here day by day.</p>`}</div>
+      <div class="panel scroll"><h3>Who joined</h3><table><thead><tr><th>Member</th><th>IGN</th><th>Roles</th><th>Joined Discord</th><th></th></tr></thead><tbody>
+        ${d.members.map((m) => `<tr><td><img class="av" src="${esc(m.avatar_url)}" alt="">${esc(m.nick || m.global_name || m.username)} <span class="muted">@${esc(m.username)}</span></td><td>${esc(m.ign || "")}</td><td>${esc((m.roles || []).filter((r) => r !== "@everyone").join(", "))}</td><td>${m.joined_at ? when(m.joined_at) + ` <span class="muted">(${ago(m.joined_at)})</span>` : ""}</td><td>${m.left_at ? '<span class="pill left">Left</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No one yet.</td></tr>`}
+      </tbody></table></div>`;
+  }
+
+  // ---------- content helpers
+  async function upload(file, folder) {
+    const s = await api("upload", { name: file.name, folder });
+    const fd = new FormData(); fd.append("cacheControl", "31536000"); fd.append("", file);
+    const r = await fetch(s.url, { method: "PUT", body: fd });
+    if (!r.ok) throw new Error("Upload failed (" + r.status + "). Files must be under 50 MB.");
+    return s.path;
+  }
+  const armDelete = (btn, fn) => {
+    btn.addEventListener("click", async () => {
+      if (!btn.classList.contains("armed")) { btn.classList.add("armed"); btn.textContent = "Click again to delete"; setTimeout(() => { btn.classList.remove("armed"); btn.textContent = "Delete"; }, 3000); return; }
+      btn.disabled = true; await fn().catch((e) => alertIn(btn, e.message));
+    });
+  };
+  const alertIn = (el, msg, ok) => { let m = el.parentElement.querySelector(".msg"); if (!m) { m = document.createElement("span"); m.className = "msg"; el.after(m); } m.className = "msg " + (ok ? "ok" : "err"); m.textContent = " " + msg; };
+  const save = async (btn, fn) => { btn.disabled = true; try { await fn(); alertIn(btn, "Saved", true); } catch (e) { alertIn(btn, e.message); } btn.disabled = false; };
+
+  // ---------- Members
+  async function members() {
+    const d = await api("content");
+    view.innerHTML = `
+      <p class="muted">Members appear here when they set their IGN with Pact Bot. They write their own About me with <b>/about</b> in Discord; you can edit or hide anyone. Lower order numbers show first.</p>
+      <div class="panel">${d.members.length ? d.members.map((m) => `<div class="mrow" data-id="${esc(m.discord_user_id)}">
+        <img src="${esc(OP.head(m))}" alt="" onerror="this.src='${esc(m.avatar)}'">
+        <div><input class="in" data-f="ign" value="${esc(m.ign)}" aria-label="IGN"><div class="muted" style="margin-top:4px">@${esc(m.discord_username || "")} ${m.left ? '<span class="pill left">Left Discord</span>' : ""}</div></div>
+        <textarea class="in" data-f="about" maxlength="300" placeholder="About me" aria-label="About me">${esc(m.about || "")}</textarea>
+        <label class="chk"><input type="checkbox" data-f="hidden" ${m.hidden ? "checked" : ""}> Hide</label>
+        <input class="in" data-f="sort" type="number" value="${m.sort}" aria-label="Order" title="Order">
+        <button class="pbtn primary" data-save>Save</button>
+      </div>`).join("") : `<p class="muted">No one has set their IGN yet. Once they click "Set your IGN" in #welcome, they show up here.</p>`}</div>`;
+    view.querySelectorAll("[data-save]").forEach((btn) => btn.addEventListener("click", () => {
+      const row = btn.closest(".mrow"), f = (k) => row.querySelector(`[data-f="${k}"]`);
+      save(btn, () => api("member", { id: row.dataset.id, ign: f("ign").value.trim(), about: f("about").value.trim(), hidden: f("hidden").checked, sort: Number(f("sort").value) }));
+    }));
+  }
+
+  // ---------- Bases
+  async function bases() {
+    const d = await api("content");
+    view.innerHTML = `
+      <div class="panel"><h3>Add base screenshots</h3>
+        <div class="form">
+          <label class="full">Screenshots (pick one or many)<input class="in" type="file" id="b-files" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
+          <label>Title<input class="in" id="b-title" maxlength="80" placeholder="Main base, spawner farm…"></label>
+          <label>Built by<input class="in" id="b-builders" maxlength="120" placeholder="IGNs, comma separated"></label>
+          <label class="full">Caption<input class="in" id="b-caption" maxlength="300" placeholder="Optional. Never put coordinates here."></label>
+          <div class="full"><button class="pbtn primary" id="b-add">Upload</button> <span id="b-msg" class="muted"></span></div>
+        </div>
+      </div>
+      <div class="items">${d.bases.map((b) => `<div class="item" data-id="${esc(b.id)}">
+        <img class="thumb" src="${esc(b.image)}" alt="">
+        <input class="in" data-f="title" value="${esc(b.title)}" placeholder="Title">
+        <input class="in" data-f="builders" value="${esc(b.builders)}" placeholder="Built by">
+        <input class="in" data-f="caption" value="${esc(b.caption)}" placeholder="Caption">
+        <div class="row" style="margin:0"><input class="in" data-f="sort" type="number" value="${b.sort}" style="width:80px" title="Order"><button class="pbtn primary" data-save>Save</button><button class="pbtn danger" data-del>Delete</button></div>
+      </div>`).join("")}</div>`;
+    $("#b-add").onclick = async () => {
+      const files = [...$("#b-files").files]; const msg = $("#b-msg");
+      if (!files.length) { msg.textContent = "Pick at least one screenshot."; return; }
+      $("#b-add").disabled = true;
+      try {
+        for (const [i, f] of files.entries()) {
+          msg.textContent = `Uploading ${i + 1} of ${files.length}…`;
+          const path = await upload(f, "bases");
+          await api("base_add", { image_path: path, title: $("#b-title").value.trim(), builders: $("#b-builders").value.trim(), caption: $("#b-caption").value.trim() });
+        }
+        bases().catch(showErr);
+      } catch (e) { msg.textContent = e.message; msg.className = "err"; $("#b-add").disabled = false; }
+    };
+    view.querySelectorAll(".item").forEach((it) => {
+      const f = (k) => it.querySelector(`[data-f="${k}"]`).value;
+      it.querySelector("[data-save]").onclick = (e) => save(e.target, () => api("base_edit", { id: it.dataset.id, title: f("title"), builders: f("builders"), caption: f("caption"), sort: Number(f("sort")) }));
+      armDelete(it.querySelector("[data-del]"), async () => { await api("base_delete", { id: it.dataset.id }); it.remove(); });
+    });
+  }
+
+  // ---------- Videos
+  async function videos() {
+    const d = await api("content");
+    view.innerHTML = `
+      <div class="panel"><h3>Add a video</h3>
+        <div class="form">
+          <label class="full">YouTube or TikTok link<input class="in" id="v-link" placeholder="https://youtube.com/watch?v=…"></label>
+          <label class="full">…or upload a video file (MP4, under 50 MB)<input class="in" type="file" id="v-file" accept="video/mp4,video/webm,video/quicktime"></label>
+          <label>Title<input class="in" id="v-title" maxlength="100"></label>
+          <label>Description<input class="in" id="v-desc" maxlength="500"></label>
+          <div class="full"><button class="pbtn primary" id="v-add">Add video</button> <span id="v-msg" class="muted"></span></div>
+        </div>
+      </div>
+      <div class="items">${d.videos.map((v) => `<div class="item" data-id="${esc(v.id)}">
+        ${v.kind === "youtube" ? `<img class="thumb" src="https://i.ytimg.com/vi/${esc(v.ref)}/hqdefault.jpg" alt="">` : v.kind === "file" ? `<video class="thumb" src="${esc(v.url)}" preload="metadata" muted></video>` : `<div class="thumb muted" style="display:grid;place-items:center;aspect-ratio:16/10;background:#000">TikTok ${esc(v.ref)}</div>`}
+        <input class="in" data-f="title" value="${esc(v.title)}" placeholder="Title">
+        <textarea class="in" data-f="description" placeholder="Description">${esc(v.description)}</textarea>
+        <div class="row" style="margin:0"><input class="in" data-f="sort" type="number" value="${v.sort}" style="width:80px" title="Order"><button class="pbtn primary" data-save>Save</button><button class="pbtn danger" data-del>Delete</button></div>
+      </div>`).join("")}</div>`;
+    $("#v-add").onclick = async () => {
+      const msg = $("#v-msg"); const file = $("#v-file").files[0]; const link = $("#v-link").value.trim();
+      if (!file && !link) { msg.textContent = "Paste a link or pick a file."; return; }
+      $("#v-add").disabled = true;
+      try {
+        let path = "";
+        if (file && !link) { msg.textContent = "Uploading…"; path = await upload(file, "videos"); }
+        await api("video_add", { link, path, title: $("#v-title").value.trim(), description: $("#v-desc").value.trim() });
+        videos().catch(showErr);
+      } catch (e) { msg.textContent = e.message; msg.className = "err"; $("#v-add").disabled = false; }
+    };
+    view.querySelectorAll(".item").forEach((it) => {
+      const f = (k) => it.querySelector(`[data-f="${k}"]`).value;
+      it.querySelector("[data-save]").onclick = (e) => save(e.target, () => api("video_edit", { id: it.dataset.id, title: f("title"), description: f("description"), sort: Number(f("sort")) }));
+      armDelete(it.querySelector("[data-del]"), async () => { await api("video_delete", { id: it.dataset.id }); it.remove(); });
+    });
+  }
+
+  // ---------- start
+  async function start() {
+    $("#gate").hidden = true; $("#app").hidden = false;
+    go("overview");
+    // keep the Live badge fresh while on other tabs
+    setInterval(() => { if (tab !== "live") api("live", prefs).then((d) => { const n = new Set(d.sessions.filter((s) => prefs.owner || !s.is_owner).map((s) => s.visitor_id)).size; $("#live-badge").hidden = !n; $("#live-badge").textContent = n; }).catch(() => {}); }, 30000);
+  }
+  if (KEY) api("ping").then(start).catch(() => {}); else showGate();
+})();
+</script>
+
+</body>
+</html>

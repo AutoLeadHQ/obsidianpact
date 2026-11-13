@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Videos | The Obsidian Pact</title>
+<meta name="description" content="Full videos from The Obsidian Pact: raids, builds, events and PvP on DonutSMP.">
+<link rel="canonical" href="https://obsidianpact.net/videos/">
+<meta property="og:title" content="Videos | The Obsidian Pact">
+<meta property="og:description" content="Full videos from The Obsidian Pact: raids, builds, events and PvP on DonutSMP.">
+<meta property="og:image" content="https://obsidianpact.net/assets/og.png">
+<meta property="og:url" content="https://obsidianpact.net/videos/">
+<meta property="og:site_name" content="The Obsidian Pact">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1a1222">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="icon" href="../assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Sora:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css">
+
+</head>
+<body>
+<header class="nav"><div class="nav-in">
+  <a class="brand" href="../"><img src="../assets/favicon.png" alt="" width="30" height="30">The Obsidian Pact</a>
+  <nav class="nav-links" aria-label="Main"><a href="../">Home</a><a href="../members/">Members</a><a href="../bases/">Bases</a><a href="../videos/" aria-current="page">Videos</a><a class="nav-join" href="https://discord.gg/c9HDNeTX4z" data-where="nav">Join</a></nav>
+</div></header>
+<main>
+  <div class="page-head">
+    <h1>Videos</h1>
+    <p>Full videos of our raids, builds, events and fights. Hit play and watch them right here.</p>
+  </div>
+  <section style="padding-top:36px">
+    <div class="videos" id="videos"><p class="loading">Loading videos…</p></div>
+  </section>
+</main>
+
+<footer><div class="foot">
+  <nav aria-label="Footer"><a href="../">Home</a><a href="../members/">Members</a><a href="../bases/">Bases</a><a href="../videos/">Videos</a><a href="../privacy/">Privacy &amp; safety</a><a href="https://github.com/AutoLeadHQ/obsidianpact" rel="noopener">Site code on GitHub</a></nav>
+  <p>The Obsidian Pact is a player-run clan and is not affiliated with DonutSMP or Mojang. We never buy or sell DonutSMP items, money or accounts, and this site never asks you to sign in or download anything.</p>
+</div></footer>
+<script src="../assets/site.js"></script>
+<script>
+  const list = document.getElementById("videos");
+  OP.load().then((d) => {
+    if (!d.videos.length) {
+      list.outerHTML = `<div class="empty"><strong>First videos are on the way.</strong>Join the Discord to be in the next one.</div>`;
+      return;
+    }
+    list.innerHTML = "";
+    d.videos.forEach((v, i) => {
+      const row = document.createElement("article");
+      row.className = "video" + (i === 0 ? " feature" : "");
+      row.appendChild(OP.player(v));
+      const txt = document.createElement("div");
+      txt.innerHTML = `<h3>${OP.esc(v.title || "Untitled video")}</h3><span class="date">${OP.day(v.at)}</span>${v.description ? `<p>${OP.esc(v.description)}</p>` : ""}`;
+      row.appendChild(txt);
+      list.appendChild(row);
+    });
+  }).catch(() => { list.innerHTML = `<div class="empty"><strong>Couldn't load videos.</strong>Refresh the page to try again.</div>`; });
+</script>
+
+</body>
+</html>

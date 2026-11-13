@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Obsidian Pact | DonutSMP Clan</title>
+<meta name="description" content="The Obsidian Pact is a DonutSMP PvP and building clan. Meet the members, see our bases and videos, and join the Discord.">
+<link rel="canonical" href="https://obsidianpact.net/">
+<meta property="og:title" content="The Obsidian Pact | DonutSMP Clan">
+<meta property="og:description" content="The Obsidian Pact is a DonutSMP PvP and building clan. Meet the members, see our bases and videos, and join the Discord.">
+<meta property="og:image" content="https://obsidianpact.net/assets/og.png">
+<meta property="og:url" content="https://obsidianpact.net/">
+<meta property="og:site_name" content="The Obsidian Pact">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1a1222">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Sora:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .hero { position: relative; overflow: hidden; isolation: isolate; }
+  .hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; image-rendering: pixelated; }
+  .hero::after { content: ""; position: absolute; inset: 0; z-index: -1;
+    background: linear-gradient(180deg, rgba(26,18,34,.55) 0%, rgba(26,18,34,.35) 55%, var(--obsidian) 100%); }
+  .hero-inner { max-width: 1080px; margin: 0 auto; padding: 64px 20px 88px;
+    display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 56px; align-items: center; }
+  .hero h1 { font: 700 clamp(3rem, 8vw, 5.5rem)/0.92 "Pixelify Sans", sans-serif; margin: 0 0 20px; letter-spacing: -0.01em;
+    text-shadow: 5px 5px 0 var(--portal), 10px 10px 0 rgba(0,0,0,.5); }
+  .lede { font-size: 1.2rem; color: var(--muted); max-width: 30ch; margin: 0 0 32px; }
+  .ip { margin: 8px 0 0; color: var(--muted); font-size: .95rem; }
+  .ip code { font-family: "Pixelify Sans", sans-serif; font-size: 1.05rem; color: var(--bone); }
+
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .pillar { padding: 28px 28px 8px 0; border-top: 6px solid var(--portal); }
+  .pillar + .pillar { padding-left: 28px; border-left: 2px solid var(--obsidian-2); }
+  .pillar h3 { font: 700 1.5rem/1.1 "Pixelify Sans", sans-serif; margin: 0 0 10px; }
+  .pillar p { margin: 0; color: var(--muted); max-width: 34ch; }
+
+  .band { background: var(--obsidian-2); }
+  .band .card { background: var(--obsidian); }
+  .teaser-roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .mini { background: var(--obsidian); text-decoration: none; display: grid; justify-items: center; padding: 16px 10px 14px; gap: 8px; border-bottom: 4px solid var(--obsidian-3); }
+  .mini img { width: 64px; height: 64px; image-rendering: pixelated; }
+  .mini b { font: 700 1.1rem/1.1 "Pixelify Sans", sans-serif; word-break: break-all; text-align: center; }
+  .mini:hover { border-bottom-color: var(--magenta); }
+  .teaser-bases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .teaser-bases a { display: block; aspect-ratio: 4 / 3; overflow: hidden; background: var(--obsidian); }
+  .teaser-bases img { width: 100%; height: 100%; object-fit: cover; transition: transform .2s ease; }
+  .teaser-bases a:hover img { transform: scale(1.04); }
+
+  .wall { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; padding: 26px;
+    background: repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,.035) 31px 32px),
+      repeating-linear-gradient(90deg, transparent 0 31px, rgba(255,255,255,.035) 31px 32px), #120c18;
+    border: 4px solid #0c0810; }
+  .wall figure { margin: 0; }
+  .wall .item-frame { padding: 9px; box-shadow: inset 0 0 0 3px var(--frame-dark), 5px 5px 0 rgba(0,0,0,.5); }
+  .wall figcaption { margin-top: 10px; font-size: .9rem; color: var(--muted); }
+  .wall-note { margin: 18px 0 0; color: var(--muted); max-width: 60ch; }
+
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; max-width: 640px; counter-reset: s; }
+  .steps li { display: grid; grid-template-columns: 52px 1fr; gap: 18px; align-items: start; counter-increment: s; }
+  .steps li::before { content: counter(s); display: grid; place-items: center; width: 52px; height: 52px; background: var(--lapis);
+    font: 700 1.6rem/1 "Pixelify Sans", sans-serif; box-shadow: inset -4px -4px 0 rgba(0,0,0,.3), inset 4px 4px 0 rgba(255,255,255,.18); }
+  .steps strong { display: block; font-weight: 600; font-size: 1.1rem; }
+  .steps span { color: var(--muted); }
+  .steps code { font-family: "Pixelify Sans", sans-serif; color: var(--bone); }
+
+  .server { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: start; }
+  .server p { margin: 0 0 14px; color: var(--muted); max-width: 52ch; }
+  .server ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+  .server li { padding: 14px 16px; background: var(--obsidian-2); border-left: 6px solid var(--magenta); }
+  .server li strong { display: block; font-weight: 600; }
+  .server li span { color: var(--muted); font-size: .95rem; }
+
+  .faq { max-width: 720px; }
+  .faq details { border-bottom: 2px solid var(--obsidian-2); }
+  .faq summary { cursor: pointer; list-style: none; padding: 18px 40px 18px 0; position: relative; font-weight: 600; font-size: 1.1rem; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; position: absolute; right: 6px; top: 12px; font: 700 1.6rem/1 "Pixelify Sans", sans-serif; color: var(--magenta); }
+  .faq details[open] summary::after { content: "–"; }
+  .faq details p { margin: 0 0 20px; color: var(--muted); max-width: 60ch; }
+  .faq code { font-family: "Pixelify Sans", sans-serif; color: var(--bone); }
+
+  .final { text-align: center; }
+  .final p { color: var(--muted); margin: 0 auto 28px; max-width: 44ch; }
+  .socials { display: flex; flex-wrap: wrap; gap: 14px; }
+
+  @media (max-width: 820px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 36px; padding: 36px 16px 60px; }
+    .hero-text { order: -1; }
+    .hero .item-frame { max-width: 360px; }
+    .pillars { grid-template-columns: 1fr; }
+    .pillar, .pillar + .pillar { padding: 22px 0 18px; border-left: 0; }
+    .wall { grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 16px; }
+    .server { grid-template-columns: 1fr; gap: 28px; }
+    .teaser-bases { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+
+</head>
+<body>
+<header class="nav"><div class="nav-in">
+  <a class="brand" href=""><img src="assets/favicon.png" alt="" width="30" height="30">The Obsidian Pact</a>
+  <nav class="nav-links" aria-label="Main"><a href="" aria-current="page">Home</a><a href="members/">Members</a><a href="bases/">Bases</a><a href="videos/">Videos</a><a class="nav-join" href="https://discord.gg/c9HDNeTX4z" data-where="nav">Join</a></nav>
+</div></header>
+<div class="hero">
+  <canvas id="portal" width="96" height="64" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <div class="item-frame">
+      <img src="assets/mapart.png" width="128" height="128" alt="The Obsidian Pact map art: the clan name over a purple nether portal in an obsidian frame">
+    </div>
+    <div class="hero-text">
+      <h1>The Obsidian Pact</h1>
+      <p class="lede">A DonutSMP clan for PvP, raids and big builds. One crew, no splinter groups.</p>
+      <a class="join" href="https://discord.gg/c9HDNeTX4z" data-where="hero"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18.1a19.8 19.8 0 0 0 6 3l1.3-2a12.8 12.8 0 0 1-2-1l.5-.4a14.1 14.1 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.7 19.7 0 0 0 6-3c.5-5.2-.8-9.7-3.6-13.7ZM8 15.4c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.6 8 10.6s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z"/></svg> Join the Discord</a>
+      <p class="live" data-live hidden><span class="dot" aria-hidden="true"></span><span><b data-online></b> online now, <b data-members></b> members</span></p>
+      <p class="invite-plain">Or open Discord and join with code <code>c9HDNeTX4z</code></p>
+      <p class="ip">We play on <code>donutsmp.net</code></p>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section aria-labelledby="what">
+    <h2 id="what">What we do</h2>
+    <div class="pillars">
+      <div class="pillar"><h3>PvP and raids</h3><p>Crystal PvP practice, group fights and base hunts. New players get trained, not thrown in.</p></div>
+      <div class="pillar"><h3>Big builds</h3><p>Clan bases, farms and map art across DonutSMP. Everyone who helps gets credit.</p></div>
+      <div class="pillar"><h3>Events</h3><p>Planned events with real in-game prizes, announced in the Discord first.</p></div>
+    </div>
+  </section>
+
+  <div class="band" id="t-members" hidden>
+    <section aria-labelledby="crew">
+      <div class="section-head"><h2 id="crew">The crew</h2><a class="more" href="members/">See all members →</a></div>
+      <div class="teaser-roster" id="t-roster"></div>
+    </section>
+  </div>
+
+  <section aria-labelledby="bases-h" id="t-bases" hidden>
+    <div class="section-head"><h2 id="bases-h">Our bases</h2><a class="more" href="bases/">Open the gallery →</a></div>
+    <div class="teaser-bases" id="t-bases-grid"></div>
+  </section>
+
+  <section aria-labelledby="vid-h" id="t-video" hidden>
+    <div class="section-head"><h2 id="vid-h">Latest video</h2><a class="more" href="videos/">All videos →</a></div>
+    <div id="t-video-box"></div>
+  </section>
+
+  <section aria-labelledby="art">
+    <h2 id="art">Our map art</h2>
+    <div class="wall">
+      <figure><div class="item-frame"><img src="assets/art-portal.png" width="128" height="128" loading="lazy" alt="Map art: the clan name inside a nether portal framed in obsidian"></div><figcaption>Portal</figcaption></figure>
+      <figure><div class="item-frame"><img src="assets/art-crystal.png" width="128" height="128" loading="lazy" alt="Map art: a glowing obsidian crystal over a starry sky"></div><figcaption>Crystal</figcaption></figure>
+      <figure><div class="item-frame"><img src="assets/art-crest.png" width="128" height="128" loading="lazy" alt="Map art: a shield with crossed netherite swords and a banner"></div><figcaption>Crest</figcaption></figure>
+      <figure><div class="item-frame"><img src="assets/art-end.png" width="128" height="128" loading="lazy" alt="Map art: obsidian pillars with end crystals"></div><figcaption>End Pillars</figcaption></figure>
+    </div>
+    <p class="wall-note">Our clan map art designs. The first one is going up on DonutSMP now, placed block by block. Want to help build the rest? Say so in the Discord.</p>
+  </section>
+
+  <div class="band">
+    <section aria-labelledby="join">
+      <h2 id="join">How to join</h2>
+      <ol class="steps">
+        <li><div><strong>Join the Discord</strong><span>Everything happens there: events, raids and announcements.</span></div></li>
+        <li><div><strong>Set your IGN</strong><span>Click <b>Set your IGN</b> in #welcome (or type <code>/ign</code>) so we can find you in DonutSMP. Add an About me and you show up on the <a href="members/">members page</a>.</span></div></li>
+        <li><div><strong>Show up to the next event</strong><span>The fastest way to meet the crew.</span></div></li>
+      </ol>
+    </section>
+  </div>
+
+  <section aria-labelledby="safe">
+    <h2 id="safe">Safe to visit</h2>
+    <div class="trust">
+      <div><strong>No downloads</strong><span>Nothing on this site ever downloads to your device.</span></div>
+      <div><strong>No sign-in</strong><span>We never ask for your Discord, Minecraft or Microsoft login.</span></div>
+      <div><strong>Real Discord link</strong><span>Join buttons go straight to <b>discord.gg</b>, Discord's own invite site.</span></div>
+      <div><strong>Open code</strong><span>Every line of this site is public on <a href="https://github.com/AutoLeadHQ/obsidianpact" rel="noopener">GitHub</a>.</span></div>
+    </div>
+    <p class="trust-note">If anyone sends you a "free Nitro", giveaway or login link that says it's from us, it isn't. Our only links are <b>obsidianpact.net</b> and <b>discord.gg/c9HDNeTX4z</b>. More on the <a href="privacy/">privacy &amp; safety page</a>.</p>
+  </section>
+
+  <section aria-labelledby="server">
+    <div class="server">
+      <div>
+        <h2 id="server">Our own server is coming</h2>
+        <p>We're building the clan first. When it's big enough, the Obsidian Pact gets its own Minecraft server, made around clans, PvP and events from day one.</p>
+        <p>Members in the Discord get in first and help decide what it looks like.</p>
+      </div>
+      <ul>
+        <li><strong>Early access</strong><span>Discord members join before the public launch.</span></li>
+        <li><strong>A say in the rules</strong><span>Game modes and features get voted on in the Discord.</span></li>
+        <li><strong>Founder recognition</strong><span>Everyone who helped build the clan gets marked as a founder.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="faq">
+    <h2 id="faq">Questions</h2>
+    <div class="faq">
+      <details><summary>Is this website safe?</summary><p>Yes. It's a plain information page: no downloads, no sign-in, no ads, and it never asks for a password. The Join buttons go directly to discord.gg. If you'd rather skip the site entirely, open Discord and join with the code <code>c9HDNeTX4z</code>.</p></details>
+      <details><summary>Is it free to join?</summary><p>Yes. Join the Discord, set your IGN, and you're in.</p></details>
+      <details><summary>Do I have to be good at PvP?</summary><p>No. Plenty of members mostly build. If you want to get better at PvP, we practice together.</p></details>
+      <details><summary>Which server do you play on?</summary><p>DonutSMP, at <code>donutsmp.net</code>. Our own server is on the way.</p></details>
+      <details><summary>Do you sell items or money?</summary><p>No. We never buy or sell DonutSMP items, money or accounts, and we never will.</p></details>
+      <details><summary>How do I find you in game?</summary><p>Ask in the Discord and someone will meet you, or look for our map art around the server.</p></details>
+    </div>
+  </section>
+
+  <section class="final" aria-labelledby="cta">
+    <h2 id="cta">Ready to join?</h2>
+    <p>It takes a minute. Everything starts in the Discord.</p>
+    <a class="join" href="https://discord.gg/c9HDNeTX4z" data-where="bottom"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18.1a19.8 19.8 0 0 0 6 3l1.3-2a12.8 12.8 0 0 1-2-1l.5-.4a14.1 14.1 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.7 19.7 0 0 0 6-3c.5-5.2-.8-9.7-3.6-13.7ZM8 15.4c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.6 8 10.6s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z"/></svg> Join the Discord</a>
+    <p class="live" data-live hidden style="justify-content:center"><span class="dot" aria-hidden="true"></span><span><b data-online></b> online now, <b data-members></b> members</span></p>
+  </section>
+
+  <section aria-labelledby="follow" id="follow-section">
+    <h2 id="follow">Follow us</h2>
+    <div class="socials" id="socials"></div>
+  </section>
+</main>
+
+<footer><div class="foot">
+  <nav aria-label="Footer"><a href="">Home</a><a href="members/">Members</a><a href="bases/">Bases</a><a href="videos/">Videos</a><a href="privacy/">Privacy &amp; safety</a><a href="https://github.com/AutoLeadHQ/obsidianpact" rel="noopener">Site code on GitHub</a></nav>
+  <p>The Obsidian Pact is a player-run clan and is not affiliated with DonutSMP or Mojang. We never buy or sell DonutSMP items, money or accounts, and this site never asks you to sign in or download anything.</p>
+</div></footer>
+<script src="assets/site.js"></script>
+<script>
+  // Social links: add a URL to show the button. Empty ones stay hidden.
+  const SOCIALS = [
+    ["YouTube", ""],
+    ["TikTok", ""],
+    ["X", ""],
+  ];
+  const box = document.getElementById("socials");
+  SOCIALS.filter(([, url]) => url).forEach(([name, url]) => {
+    const a = document.createElement("a");
+    a.className = "btn"; a.href = url; a.textContent = name; a.target = "_blank"; a.rel = "noopener";
+    a.dataset.track = "social_click"; a.dataset.where = name;
+    box.appendChild(a);
+  });
+  if (!box.children.length) document.getElementById("follow-section").remove();
+
+  // Teasers: the crew, newest bases, latest video. Each block stays hidden until it has something in it.
+  OP.load().then((d) => {
+    if (d.members.length) {
+      document.getElementById("t-roster").innerHTML = d.members.slice(0, 12).map((m) =>
+        `<a class="mini" href="members/"><img src="${OP.esc(OP.head(m))}" alt="" width="64" height="64" loading="lazy" onerror="this.src='${OP.esc(m.avatar)}'"><b>${OP.esc(m.ign)}</b><span class="role ${m.role.replace(" ", "-")}">${OP.esc(m.role)}</span></a>`).join("");
+      document.getElementById("t-members").hidden = false;
+    }
+    if (d.bases.length) {
+      document.getElementById("t-bases-grid").innerHTML = d.bases.slice(0, 3).map((b) =>
+        `<a href="bases/#${OP.esc(b.id)}"><img src="${OP.esc(b.image)}" alt="${OP.esc(b.title || "Clan base")}" loading="lazy"></a>`).join("");
+      document.getElementById("t-bases").hidden = false;
+    }
+    if (d.videos.length) {
+      const v = d.videos[0];
+      const wrap = document.createElement("div");
+      wrap.className = "video";
+      wrap.appendChild(OP.player(v));
+      const txt = document.createElement("div");
+      txt.innerHTML = `<h3>${OP.esc(v.title)}</h3><p>${OP.esc(v.description)}</p>`;
+      wrap.appendChild(txt);
+      document.getElementById("t-video-box").appendChild(wrap);
+      document.getElementById("t-video").hidden = false;
+    }
+  }).catch(() => {});
+
+  // Nether portal swirl, drawn at low resolution and scaled up with pixelated rendering.
+  (() => {
+    const cv = document.getElementById("portal");
+    const ctx = cv.getContext("2d");
+    const w = cv.width, h = cv.height, img = ctx.createImageData(w, h);
+    const C = { purple: [127, 63, 178], magenta: [178, 76, 216], lapis: [51, 76, 178] };
+    const bayer = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function frame(t) {
+      const s = t / 2400;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const v = 1.3 * Math.sin(x * 0.30 + 2.6 * Math.sin(y * 0.09 + s) + 1.2 * Math.sin(y * 0.031 + x * 0.02 - s * 0.7))
+                + 0.6 * Math.sin(y * 0.07 - x * 0.05 + s * 1.3);
+        const d = bayer[y % 4][x % 4] / 16;
+        const c = v > 1.15 + d * 0.5 ? C.magenta : v < -1.2 - d * 0.5 ? C.lapis : C.purple;
+        const i = (y * w + x) * 4;
+        img.data[i] = c[0]; img.data[i + 1] = c[1]; img.data[i + 2] = c[2]; img.data[i + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      if (!reduce) requestAnimationFrame(frame);
+    }
+    frame(0);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Members | The Obsidian Pact</title>
+<meta name="description" content="Meet the members of The Obsidian Pact, a DonutSMP PvP and building clan.">
+<link rel="canonical" href="https://obsidianpact.net/members/">
+<meta property="og:title" content="Members | The Obsidian Pact">
+<meta property="og:description" content="Meet the members of The Obsidian Pact, a DonutSMP PvP and building clan.">
+<meta property="og:image" content="https://obsidianpact.net/assets/og.png">
+<meta property="og:url" content="https://obsidianpact.net/members/">
+<meta property="og:site_name" content="The Obsidian Pact">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1a1222">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="icon" href="../assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Sora:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css">
+
+</head>
+<body>
+<header class="nav"><div class="nav-in">
+  <a class="brand" href="../"><img src="../assets/favicon.png" alt="" width="30" height="30">The Obsidian Pact</a>
+  <nav class="nav-links" aria-label="Main"><a href="../">Home</a><a href="../members/" aria-current="page">Members</a><a href="../bases/">Bases</a><a href="../videos/">Videos</a><a class="nav-join" href="https://discord.gg/c9HDNeTX4z" data-where="nav">Join</a></nav>
+</div></header>
+<main>
+  <div class="page-head">
+    <h1>Members</h1>
+    <p>The people behind the Obsidian Pact: builders, fighters and everyone in between.</p>
+  </div>
+  <section style="padding-top:0">
+    <div class="roster-tools">
+      <input class="search" id="q" type="search" placeholder="Search by name or what they do…" aria-label="Search members">
+      <span class="count" id="count"></span>
+    </div>
+    <div class="roster" id="roster"><p class="loading">Loading the crew…</p></div>
+
+    <div class="how" aria-label="How to get on this page">
+      <div><strong>1. Join the Discord</strong><span><a href="https://discord.gg/c9HDNeTX4z" data-where="members-how">discord.gg/c9HDNeTX4z</a></span></div>
+      <div><strong>2. Set your IGN</strong><span>Click <b>Set your IGN</b> in #welcome, or type <code>/ign</code>.</span></div>
+      <div><strong>3. Add an About me</strong><span>Type <code>/about</code>. You'll show up here within a few minutes.</span></div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="foot">
+  <nav aria-label="Footer"><a href="../">Home</a><a href="../members/">Members</a><a href="../bases/">Bases</a><a href="../videos/">Videos</a><a href="../privacy/">Privacy &amp; safety</a><a href="https://github.com/AutoLeadHQ/obsidianpact" rel="noopener">Site code on GitHub</a></nav>
+  <p>The Obsidian Pact is a player-run clan and is not affiliated with DonutSMP or Mojang. We never buy or sell DonutSMP items, money or accounts, and this site never asks you to sign in or download anything.</p>
+</div></footer>
+<script src="../assets/site.js"></script>
+<script>
+  const roster = document.getElementById("roster");
+  const count = document.getElementById("count");
+  let all = [];
+  function card(m) {
+    const b = OP.body(m);
+    const pic = b
+      ? `<img class="body" src="${OP.esc(b)}" alt="${OP.esc(m.ign)}'s Minecraft skin" loading="lazy" onerror="this.className='av-only';this.src='${OP.esc(m.avatar)}'">`
+      : `<img class="av-only" src="${OP.esc(m.avatar)}" alt="" loading="lazy">`;
+    return `<article class="card">
+      <div class="skin">${b ? `<img class="disc" src="${OP.esc(m.avatar)}" alt="" loading="lazy">` : ""}${pic}</div>
+      <div class="info">
+        <h3>${OP.esc(m.ign)}</h3>
+        <div class="meta"><span class="role ${m.role.replace(" ", "-")}">${OP.esc(m.role)}</span><span>Member since ${OP.month(m.since)}</span></div>
+        ${m.about ? `<p>${OP.esc(m.about)}</p>` : `<p class="none">No About me yet.</p>`}
+      </div>
+    </article>`;
+  }
+  function render() {
+    const t = document.getElementById("q").value.trim().toLowerCase();
+    const list = t ? all.filter((m) => (m.ign + " " + m.about + " " + m.role).toLowerCase().includes(t)) : all;
+    count.textContent = t ? `${list.length} of ${all.length} members` : `${all.length} ${all.length === 1 ? "member" : "members"}`;
+    roster.innerHTML = list.length ? list.map(card).join("")
+      : t ? `<p class="loading">No one matches that.</p>`
+      : `<div class="empty"><strong>The roster is filling up.</strong>Members show up here once they set their IGN in the Discord. Steps are below.</div>`;
+  }
+  document.getElementById("q").addEventListener("input", render);
+  OP.load().then((d) => { all = d.members; render(); })
+    .catch(() => { roster.innerHTML = `<div class="empty"><strong>Couldn't load the roster.</strong>Refresh the page to try again.</div>`; });
+</script>
+
+</body>
+</html>
