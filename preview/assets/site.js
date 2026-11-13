@@ -63,9 +63,11 @@
   });
 
   // Minecraft skin renders by IGN (Java names). Bedrock names (".Name") fall back to the Discord avatar.
-  const java = (ign) => /^[A-Za-z0-9_]{3,16}$/.test(ign);
-  const head = (m) => (java(m.ign) ? `https://mc-heads.net/avatar/${encodeURIComponent(m.ign)}/64` : m.avatar);
-  const body = (m) => (java(m.ign) ? `https://mc-heads.net/body/${encodeURIComponent(m.ign)}/170` : null);
+  // m.skin is the name whose skin they wear (their IGN, or the name they copied with /skin on DonutSMP).
+  const java = (n) => /^[A-Za-z0-9_]{3,16}$/.test(n || "");
+  const skinOf = (m) => m.skin || m.ign;
+  const head = (m) => (java(skinOf(m)) ? `https://mc-heads.net/avatar/${encodeURIComponent(skinOf(m))}/64` : m.avatar);
+  const body = (m) => (java(skinOf(m)) ? `https://mc-heads.net/body/${encodeURIComponent(skinOf(m))}/170` : null);
 
   // Video player: shows a poster with a play button, loads the real player on click (full video, plays right here).
   function player(v) {

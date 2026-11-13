@@ -1,16 +1,24 @@
 // pact-site — backend for obsidianpact.net (a static GitHub Pages site).
 //  GET  ?a=public         members roster, base gallery, videos, Discord counts (cached, public)
 //  POST ?a=t              visitor analytics beacon (page view, heartbeat, click events)
+//  POST ?a=submit_url/submit  visitors send gallery screenshots; they wait for approval
 //  POST ?a=admin          owner dashboard: analytics + content management (needs x-admin-key)
 // Everything in the database is service-role only; this function is the only door in.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
+
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const db = createClient(SB_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const BUCKET = "pact-media";
+const PENDING = "pact-pending";
+const CATEGORIES = ["Bases", "Builds", "PvP", "Events", "Map art", "Other"];
+const MODLOG_CHANNEL_ID = "1570569897564708894";
 const MEDIA = `${SB_URL}/storage/v1/object/public/${BUCKET}/`;
 const INVITE = "c9HDNeTX4z";
 const TZ = "America/Chicago";
+// Links, invites and mass pings are never allowed in visitor-written text.
+const LINK_RE = /(https?:\/\/|www\.|discord\.gg|discord(app)?\.com\/invite|\b[a-z0-9-]+\.(com|net|org|gg|xyz|io|me|ly|co|tv|app|link|site|shop|ru)\b|@everyone|@here)/i;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -81,9 +89,9 @@ let publicCache: { at: number; body: unknown } | null = null;
 async function publicData() {
   if (publicCache && Date.now() - publicCache.at < 60_000) return publicCache.body;
   const [igns, dm, bases, videos, counts] = await Promise.all([
-    db.from("pact_igns").select("discord_user_id, ign, about, sort, created_at").eq("hidden", false),
+    db.from("pact_igns").select("discord_user_id, ign, about, skin, sort, created_at").eq("hidden", false),
     db.from("pact_discord_members").select("discord_user_id, avatar, roles, joined_at, left_at, global_name"),
-    db.from("pact_bases").select("*").order("sort").order("created_at", { ascending: false }),
+    db.from("pact_bases").select("*").eq("status", "live").order("sort").order("created_at", { ascending: false }),
     db.from("pact_videos").select("*").order("sort").order("created_at", { ascending: false }),
     fetch(`https://discord.com/api/v10/invites/${INVITE}?with_counts=true`).then((r) => r.ok ? r.json() : null).catch(() => null),
   ]);
@@ -95,7 +103,7 @@ async function publicData() {
       if (d?.left_at) return null; // left the Discord
       const role = RANK.find((r) => d?.roles?.includes(r)) ?? "Member";
       return {
-        ign: m.ign, about: m.about || "", role,
+        ign: m.ign, skin: m.skin || m.ign, about: m.about || "", role,
         avatar: avatarUrl(m.discord_user_id, d?.avatar ?? null),
         since: d?.joined_at ?? m.created_at, sort: m.sort,
       };
@@ -104,7 +112,8 @@ async function publicData() {
     .sort((a, b) => (a!.sort - b!.sort) || (RANK.concat("Member").indexOf(a!.role) - RANK.concat("Member").indexOf(b!.role)) || Date.parse(a!.since) - Date.parse(b!.since));
   const body = {
     members,
-    bases: (bases.data ?? []).map((b) => ({ id: b.id, title: b.title, caption: b.caption, builders: b.builders, image: media(b.image_path) })),
+    gallery: (bases.data ?? []).map((b) => ({ id: b.id, category: b.category, title: b.title, caption: b.caption, builders: b.builders, image: media(b.image_path) })),
+    categories: CATEGORIES,
     videos: (videos.data ?? []).map((v) => ({
       id: v.id, kind: v.kind, title: v.title, description: v.description,
       ref: v.kind === "file" ? media(v.ref) : v.ref, poster: media(v.poster_path), at: v.created_at,
@@ -153,6 +162,65 @@ async function track(req: Request) {
     await db.from("pact_sessions").update({ last_seen: now, ...(kind === "discord_click" ? { discord_click: true } : {}) }).eq("id", sid);
   }
   return json({ ok: true });
+}
+
+
+// ---------------------------------------------------------------- visitor screenshot submissions
+async function netOf(req: Request) {
+  const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+  return ip ? (await sha((await getKeys()).sync_key + ip)).slice(0, 8) : "none";
+}
+async function recentFrom(net: string) {
+  const { count } = await db.from("pact_bases").select("*", { count: "exact", head: true })
+    .eq("submit_net", net).gte("created_at", new Date(Date.now() - 3600e3).toISOString());
+  return count ?? 0;
+}
+async function submitUrl(req: Request) {
+  const b = await req.json().catch(() => ({}));
+  const ext = (String(b.name || "").match(/\.([a-z0-9]{2,5})$/i)?.[1] || "").toLowerCase();
+  if (!["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) return json({ error: "Only PNG, JPG, WEBP or GIF screenshots." }, 400);
+  if (Number(b.size) > 15 * 1024 * 1024) return json({ error: "That screenshot is over 15 MB." }, 400);
+  if ((await recentFrom(await netOf(req))) >= 6) return json({ error: "You've sent a lot already. Try again in an hour." }, 429);
+  const { count } = await db.from("pact_bases").select("*", { count: "exact", head: true }).eq("status", "pending");
+  if ((count ?? 0) >= 150) return json({ error: "The approval queue is full right now. Try again later." }, 429);
+  const path = `subs/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  const { data, error } = await db.storage.from(PENDING).createSignedUploadUrl(path);
+  if (error) throw error;
+  return json({ path, url: data.signedUrl });
+}
+async function submit(req: Request) {
+  const b = await req.json().catch(() => ({}));
+  const clipS = (k: string, n: number) => (typeof b[k] === "string" ? b[k].trim().slice(0, n) : "");
+  if (b.website) return json({ ok: true }); // bot trap
+  if (["title", "caption", "builders"].some((k) => LINK_RE.test(clipS(k, 300)))) return json({ error: "No links in the title or caption, please." }, 400);
+  const path = clipS("path", 120);
+  if (!/^subs\/\d+-[0-9a-f-]{36}\.(png|jpe?g|webp|gif)$/.test(path)) return json({ error: "Upload the screenshot first." }, 400);
+  const ign = clipS("ign", 17);
+  if (!/^\.?[A-Za-z0-9_]{3,16}$/.test(ign)) return json({ error: "Add your Minecraft name (IGN)." }, 400);
+  const net = await netOf(req);
+  if ((await recentFrom(net)) >= 6) return json({ error: "You've sent a lot already. Try again in an hour." }, 429);
+  const { data: exists } = await db.storage.from(PENDING).list("subs", { search: path.slice(5) });
+  if (!exists?.length) return json({ error: "The upload didn't finish. Try again." }, 400);
+  const { data: dupe } = await db.from("pact_bases").select("id").eq("image_path", path).maybeSingle();
+  if (dupe) return json({ ok: true });
+  const category = CATEGORIES.includes(b.category) ? b.category : "Other";
+  const { error } = await db.from("pact_bases").insert({
+    status: "pending", image_path: path, category, submitted_by: ign, submit_net: net,
+    title: clipS("title", 80), caption: clipS("caption", 300), builders: clipS("builders", 120) || ign,
+  });
+  if (error) throw error;
+  notifyOwner(`📸 **${ign}** sent a gallery screenshot${b.title ? `: "${clipS("title", 80)}"` : ""}. Approve or reject it in your admin page, Gallery tab.`);
+  return json({ ok: true });
+}
+let lastPing = 0;
+function notifyOwner(content: string) {
+  if (Date.now() - lastPing < 60_000) return; // at most one ping a minute
+  lastPing = Date.now();
+  EdgeRuntime.waitUntil(fetch(`https://discord.com/api/v10/channels/${MODLOG_CHANNEL_ID}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bot ${Deno.env.get("DISCORD_BOT_TOKEN")}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ content, allowed_mentions: { parse: [] } }),
+  }).catch(() => {}));
 }
 
 // ---------------------------------------------------------------- admin
@@ -268,7 +336,11 @@ async function content() {
   const byId = new Map((dm.data ?? []).map((m) => [m.discord_user_id, m]));
   return {
     members: (igns.data ?? []).map((m) => ({ ...m, avatar: avatarUrl(m.discord_user_id, byId.get(m.discord_user_id)?.avatar ?? null), roles: byId.get(m.discord_user_id)?.roles ?? [], left: !!byId.get(m.discord_user_id)?.left_at })),
-    bases: (bases.data ?? []).map((b) => ({ ...b, image: media(b.image_path) })),
+    gallery: (bases.data ?? []).filter((b) => b.status === "live").map((b) => ({ ...b, image: media(b.image_path) })),
+    pending: await Promise.all((bases.data ?? []).filter((b) => b.status === "pending").map(async (b) => ({
+      ...b, image: (await db.storage.from(PENDING).createSignedUrl(b.image_path, 3600)).data?.signedUrl ?? null,
+    }))),
+    categories: CATEGORIES,
     videos: (videos.data ?? []).map((v) => ({ ...v, url: v.kind === "file" ? media(v.ref) : null, poster: media(v.poster_path) })),
   };
 }
@@ -297,30 +369,61 @@ async function admin(o: Record<string, unknown>) {
       if ("hidden" in o) patch.hidden = !!o.hidden;
       if ("sort" in o) patch.sort = Number(o.sort) || 0;
       if ("ign" in o && /^\.?[A-Za-z0-9_]{3,16}$/.test(str("ign"))) patch.ign = str("ign");
+      if ("skin" in o) patch.skin = /^[A-Za-z0-9_]{3,16}$/.test(str("skin")) ? str("skin") : null;
       await db.from("pact_igns").update(patch).eq("discord_user_id", str("id"));
+      break;
+    }
+    case "member_approve": { // publish the About me / skin they sent from Discord
+      const { data: m } = await db.from("pact_igns").select("about_pending, skin_pending, pending_at").eq("discord_user_id", str("id")).maybeSingle();
+      if (!m?.pending_at) throw new Error("Nothing waiting for this member.");
+      await db.from("pact_igns").update({ about: m.about_pending || null, skin: m.skin_pending || null, about_pending: null, skin_pending: null, pending_at: null }).eq("discord_user_id", str("id"));
+      break;
+    }
+    case "member_reject": {
+      await db.from("pact_igns").update({ about_pending: null, skin_pending: null, pending_at: null }).eq("discord_user_id", str("id"));
       break;
     }
 
     case "upload": { // signed URL so the browser uploads straight to storage
       const ext = (str("name").match(/\.([a-z0-9]{2,5})$/i)?.[1] || "bin").toLowerCase();
       if (!["png", "jpg", "jpeg", "webp", "gif", "mp4", "webm", "mov"].includes(ext)) throw new Error("That file type isn't supported.");
-      const path = `${str("folder") === "videos" ? "videos" : "bases"}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+      const path = `${str("folder") === "videos" ? "videos" : "gallery"}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
       const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(path);
       if (error) throw error;
       return { path, url: data.signedUrl, token: data.token };
     }
 
     case "base_add": {
-      const { error } = await db.from("pact_bases").insert({ title: str("title", 80), caption: str("caption", 300), builders: str("builders", 120), image_path: str("image_path", 200) });
+      const category = CATEGORIES.includes(str("category")) ? str("category") : "Other";
+      const { error } = await db.from("pact_bases").insert({ category, title: str("title", 80), caption: str("caption", 300), builders: str("builders", 120), image_path: str("image_path", 200) });
       if (error) throw error; break;
     }
     case "base_edit": {
-      await db.from("pact_bases").update({ title: str("title", 80), caption: str("caption", 300), builders: str("builders", 120), sort: Number(o.sort) || 0 }).eq("id", str("id"));
+      const patch: Record<string, unknown> = { title: str("title", 80), caption: str("caption", 300), builders: str("builders", 120), sort: Number(o.sort) || 0 };
+      if (CATEGORIES.includes(str("category"))) patch.category = str("category");
+      await db.from("pact_bases").update(patch).eq("id", str("id"));
       break;
     }
-    case "base_delete": {
-      const { data } = await db.from("pact_bases").delete().eq("id", str("id")).select("image_path").maybeSingle();
-      if (data?.image_path) await db.storage.from(BUCKET).remove([data.image_path]);
+    case "base_delete": { // also used to reject a submission
+      const { data } = await db.from("pact_bases").delete().eq("id", str("id")).select("image_path, status").maybeSingle();
+      if (data?.image_path) await db.storage.from(data.status === "pending" ? PENDING : BUCKET).remove([data.image_path]);
+      break;
+    }
+    case "base_approve": { // move the image from the private queue to the public gallery
+      const { data: b } = await db.from("pact_bases").select("*").eq("id", str("id")).eq("status", "pending").maybeSingle();
+      if (!b) throw new Error("Already handled.");
+      const { data: file, error: dlErr } = await db.storage.from(PENDING).download(b.image_path);
+      if (dlErr || !file) throw new Error("Couldn't read that upload.");
+      if (!/^image\//.test(file.type)) throw new Error("That file isn't an image.");
+      const newPath = "gallery/" + b.image_path.slice(5);
+      const { error: upErr } = await db.storage.from(BUCKET).upload(newPath, file, { contentType: file.type, cacheControl: "31536000" });
+      if (upErr) throw upErr;
+      const category = CATEGORIES.includes(str("category")) ? str("category") : b.category;
+      await db.from("pact_bases").update({
+        status: "live", image_path: newPath, category, created_at: new Date().toISOString(),
+        ...(typeof o.title === "string" ? { title: str("title", 80), caption: str("caption", 300), builders: str("builders", 120) } : {}),
+      }).eq("id", b.id);
+      await db.storage.from(PENDING).remove([b.image_path]);
       break;
     }
 
@@ -358,6 +461,8 @@ Deno.serve(async (req) => {
   try {
     if (req.method === "GET" && a === "public") return json(await publicData(), 200, { "Cache-Control": "public, max-age=60" });
     if (req.method === "POST" && a === "t") return await track(req);
+    if (req.method === "POST" && a === "submit_url") return await submitUrl(req);
+    if (req.method === "POST" && a === "submit") return await submit(req);
     if (req.method === "POST" && a === "admin") {
       const k = await getKeys();
       if (req.headers.get("x-admin-key") !== k.admin_key) return json({ error: "Wrong admin key" }, 401);

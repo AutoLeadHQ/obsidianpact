@@ -1,7 +1,8 @@
 // Pact Bot — The Obsidian Pact's Discord bot (HTTP interactions, no always-on server).
-// - "Set your IGN" button / /ign command opens a pop-up asking for the Minecraft name (+ optional About me)
-// - Saves it and sets the member's server nickname to it
-// - /about lets members write the bio shown on the obsidianpact.net members page
+// - "Set your IGN" button / /ign or /about opens one pop-up: Minecraft name, About me, skin name
+// - IGN saves right away and becomes the member's server nickname
+// - About me and skin name wait for the owner's approval (admin page) before they show on obsidianpact.net;
+//   links and @everyone are refused outright
 // - /ign-lookup lets the owner check anyone's IGN
 import nacl from "npm:tweetnacl@1.0.3";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -14,6 +15,8 @@ const GUILD_ID = "1570168045928976556";
 const API = "https://discord.com/api/v10";
 const PURPLE = 0x7c4dff;
 const SITE = "https://obsidianpact.net/members/";
+const MODLOG_CHANNEL_ID = "1570569897564708894";
+const LINK_RE = /(https?:\/\/|www\.|discord\.gg|discord(app)?\.com\/invite|\b[a-z0-9-]+\.(com|net|org|gg|xyz|io|me|ly|co|tv|app|link|site|shop|ru)\b|@everyone|@here)/i;
 
 const db = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -59,9 +62,10 @@ async function registerCommands() {
   return { status: r.status, body: await r.text() };
 }
 
-// One pop-up for both: IGN (required) and About me (optional), pre-filled with what they already saved.
+// One pop-up: IGN (required), About me and skin name (optional), pre-filled with what they already sent.
 async function profileModal(userId: string) {
-  const { data } = await db.from("pact_igns").select("ign, about").eq("discord_user_id", userId).maybeSingle();
+  const { data: row } = await db.from("pact_igns").select("ign, about, skin, about_pending, skin_pending, pending_at").eq("discord_user_id", userId).maybeSingle();
+  const data = row && { ign: row.ign, about: row.pending_at ? row.about_pending : row.about, skin: row.pending_at ? row.skin_pending : row.skin };
   return {
     type: 9,
     data: {
@@ -86,6 +90,15 @@ async function profileModal(userId: string) {
             ...(data?.about ? { value: data.about } : {}),
           }],
         },
+        {
+          type: 1,
+          components: [{
+            type: 4, custom_id: "skin", label: "Skin name (only if you use /skin)", style: 1,
+            min_length: 3, max_length: 16, required: false,
+            placeholder: "The player name you copied your skin from",
+            ...(data?.skin ? { value: data.skin } : {}),
+          }],
+        },
       ],
     },
   };
@@ -106,14 +119,28 @@ const PANEL = {
   }],
 };
 
-async function saveProfile(userId: string, username: string, ign: string, about: string) {
+// IGN is saved right away. A changed About me / skin goes into the approval queue.
+async function saveProfile(userId: string, username: string, ign: string, about: string, skin: string) {
+  const { data: cur } = await db.from("pact_igns").select("about, skin").eq("discord_user_id", userId).maybeSingle();
+  const changed = (about || null) !== (cur?.about ?? null) || (skin || null) !== (cur?.skin ?? null);
   await db.from("pact_igns").upsert({
     discord_user_id: userId,
     discord_username: username,
     ign,
-    about: about || null,
+    about_pending: changed ? about || null : null,
+    skin_pending: changed ? skin || null : null,
+    pending_at: changed ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   });
+  if (changed) {
+    await discord(`/channels/${MODLOG_CHANNEL_ID}/messages`, {
+      method: "POST",
+      body: JSON.stringify({
+        content: `📝 **${ign}** updated their website profile. Approve or reject it on your admin page, Members tab.`,
+        allowed_mentions: { parse: [] },
+      }),
+    });
+  }
   await discord(`/guilds/${GUILD_ID}/members/${userId}`, {
     method: "PATCH",
     body: JSON.stringify({ nick: ign }),
@@ -167,13 +194,22 @@ Deno.serve(async (req) => {
         .find((c: { custom_id: string }) => c.custom_id === id)?.value ?? "").trim();
     const ign = field("ign");
     const about = field("about").replace(/\s+\n/g, "\n").slice(0, 300);
+    const skin = field("skin");
     if (!/^\.?[A-Za-z0-9_]{3,16}$/.test(ign)) {
       return ephemeral("That doesn't look like a Minecraft name. Use 3–16 letters, numbers or underscores, exactly as it shows in-game.");
     }
-    EdgeRuntime.waitUntil(saveProfile(user.id, user.username, ign, about).catch((e) => console.error("saveProfile", e)));
+    if (skin && !/^[A-Za-z0-9_]{3,16}$/.test(skin)) {
+      return ephemeral("The skin name should be a Java player name (3–16 letters, numbers or underscores). Leave it empty if you don't use /skin.");
+    }
+    if (LINK_RE.test(about)) {
+      return ephemeral("No links or @everyone in your About me, please. Take them out and try again with **/about**.");
+    }
+    EdgeRuntime.waitUntil(saveProfile(user.id, user.username, ign, about, skin).catch((e) => console.error("saveProfile", e)));
     return ephemeral(
       `Done. Your IGN is set to **${ign}** and your nickname will update in a second.\n` +
-      `You're on the members page: ${SITE}` + (about ? "" : "\nTip: type **/about** to add an About me."),
+      (about || skin
+        ? `Your About me goes on the members page (${SITE}) once a Leader approves it.`
+        : `You're on the members page: ${SITE}\nTip: type **/about** to add an About me.`),
     );
   }
 

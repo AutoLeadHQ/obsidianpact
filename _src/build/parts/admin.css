@@ -9,6 +9,15 @@
   .tabs button:hover { color: var(--bone); }
   .tabs .badge { display: inline-block; min-width: 18px; padding: 2px 5px; margin-left: 4px; background: var(--good); color: #0b2410; font-size: .75rem; }
   .tabs .badge[hidden] { display: none; }
+  .tabs .badge.warn { background: #e6c35e; color: #2b2410; }
+  .queue { border-left: 6px solid #e6c35e; }
+  .queue h3 { color: #f3e6bd; }
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cmp div { background: var(--obsidian); padding: 8px 10px; white-space: pre-line; overflow-wrap: anywhere; }
+  .cmp b { display: block; font-size: .75rem; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
+  .prow { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--obsidian-3); }
+  .prow img { width: 48px; height: 48px; image-rendering: pixelated; }
+  .acts { display: flex; gap: 8px; flex-wrap: wrap; }
   .ad-main { max-width: 1240px; margin: 0 auto; padding: 22px 18px 60px; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
   .seg { display: inline-flex; border: 2px solid var(--obsidian-3); }
@@ -63,7 +72,7 @@
   .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
   .item { background: var(--obsidian); padding: 12px; display: grid; gap: 8px; align-content: start; }
   .item img.thumb, .item video.thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; background: #000; }
-  .mrow { display: grid; grid-template-columns: 56px 160px 1fr 90px 70px auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--obsidian-3); }
+  .mrow { display: grid; grid-template-columns: 56px 150px 130px 1fr 70px 64px auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--obsidian-3); }
   .mrow img { width: 48px; height: 48px; image-rendering: pixelated; }
   .note { padding: 12px 14px; background: #2b2410; border-left: 4px solid #e6c35e; color: #f3e6bd; margin-bottom: 16px; }
   .ok { color: var(--good); }

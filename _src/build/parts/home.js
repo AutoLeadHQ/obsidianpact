@@ -21,9 +21,9 @@
         `<a class="mini" href="members/"><img src="${OP.esc(OP.head(m))}" alt="" width="64" height="64" loading="lazy" onerror="this.src='${OP.esc(m.avatar)}'"><b>${OP.esc(m.ign)}</b><span class="role ${m.role.replace(" ", "-")}">${OP.esc(m.role)}</span></a>`).join("");
       document.getElementById("t-members").hidden = false;
     }
-    if (d.bases.length) {
-      document.getElementById("t-bases-grid").innerHTML = d.bases.slice(0, 3).map((b) =>
-        `<a href="bases/#${OP.esc(b.id)}"><img src="${OP.esc(b.image)}" alt="${OP.esc(b.title || "Clan base")}" loading="lazy"></a>`).join("");
+    if (d.gallery.length) {
+      document.getElementById("t-bases-grid").innerHTML = d.gallery.slice(0, 3).map((b) =>
+        `<a href="gallery/#${OP.esc(b.id)}"><img src="${OP.esc(b.image)}" alt="${OP.esc(b.title || b.category)}" loading="lazy"></a>`).join("");
       document.getElementById("t-bases").hidden = false;
     }
     if (d.videos.length) {

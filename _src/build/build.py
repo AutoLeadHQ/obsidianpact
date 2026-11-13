@@ -8,7 +8,7 @@ INVITE = "https://discord.gg/c9HDNeTX4z"
 REPO = "https://github.com/AutoLeadHQ/obsidianpact"
 DISCORD_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18.1a19.8 19.8 0 0 0 6 3l1.3-2a12.8 12.8 0 0 1-2-1l.5-.4a14.1 14.1 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.7 19.7 0 0 0 6-3c.5-5.2-.8-9.7-3.6-13.7ZM8 15.4c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.6 8 10.6s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z"/></svg>'
 
-NAV = [("", "Home"), ("members/", "Members"), ("bases/", "Bases"), ("videos/", "Videos")]
+NAV = [("", "Home"), ("members/", "Members"), ("gallery/", "Gallery"), ("videos/", "Videos")]
 
 
 def page(path, title, desc, body, depth, active=None, script="", noindex=False, extra_head="", nav=True):
@@ -22,7 +22,7 @@ def page(path, title, desc, body, depth, active=None, script="", noindex=False, 
   <nav class="nav-links" aria-label="Main">{links}<a class="nav-join" href="{INVITE}" data-where="nav">Join</a></nav>
 </div></header>""" if nav else ""
     foot = f"""<footer><div class="foot">
-  <nav aria-label="Footer"><a href="{r}">Home</a><a href="{r}members/">Members</a><a href="{r}bases/">Bases</a><a href="{r}videos/">Videos</a><a href="{r}privacy/">Privacy &amp; safety</a><a href="{REPO}" rel="noopener">Site code on GitHub</a></nav>
+  <nav aria-label="Footer"><a href="{r}">Home</a><a href="{r}members/">Members</a><a href="{r}gallery/">Gallery</a><a href="{r}videos/">Videos</a><a href="{r}privacy/">Privacy &amp; safety</a><a href="{REPO}" rel="noopener">Site code on GitHub</a></nav>
   <p>The Obsidian Pact is a player-run clan and is not affiliated with DonutSMP or Mojang. We never buy or sell DonutSMP items, money or accounts, and this site never asks you to sign in or download anything.</p>
 </div></footer>""" if nav else ""
     doc = f"""<!doctype html>
@@ -73,9 +73,9 @@ page("", "The Obsidian Pact | DonutSMP Clan",
 page("members/", "Members | The Obsidian Pact",
      "Meet the members of The Obsidian Pact, a DonutSMP PvP and building clan.",
      part("members.html").replace("{INVITE}", INVITE), 1, active="members/", script=part("members.js"))
-page("bases/", "Bases | The Obsidian Pact",
-     "Screenshots of The Obsidian Pact's bases, farms and builds on DonutSMP.",
-     part("bases.html").replace("{INVITE}", INVITE), 1, active="bases/", script=part("bases.js"))
+page("gallery/", "Gallery | The Obsidian Pact",
+     "Screenshots from The Obsidian Pact on DonutSMP: bases, builds, PvP, events and map art. Send in your own.",
+     part("gallery.html").replace("{INVITE}", INVITE), 1, active="gallery/", script=part("gallery.js"))
 page("videos/", "Videos | The Obsidian Pact",
      "Full videos from The Obsidian Pact: raids, builds, events and PvP on DonutSMP.",
      part("videos.html").replace("{INVITE}", INVITE), 1, active="videos/", script=part("videos.js"))

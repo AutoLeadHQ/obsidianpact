@@ -103,7 +103,7 @@
 <body>
 <header class="nav"><div class="nav-in">
   <a class="brand" href=""><img src="assets/favicon.png" alt="" width="30" height="30">The Obsidian Pact</a>
-  <nav class="nav-links" aria-label="Main"><a href="" aria-current="page">Home</a><a href="members/">Members</a><a href="bases/">Bases</a><a href="videos/">Videos</a><a class="nav-join" href="https://discord.gg/c9HDNeTX4z" data-where="nav">Join</a></nav>
+  <nav class="nav-links" aria-label="Main"><a href="" aria-current="page">Home</a><a href="members/">Members</a><a href="gallery/">Gallery</a><a href="videos/">Videos</a><a class="nav-join" href="https://discord.gg/c9HDNeTX4z" data-where="nav">Join</a></nav>
 </div></header>
 <div class="hero">
   <canvas id="portal" width="96" height="64" aria-hidden="true"></canvas>
@@ -140,7 +140,7 @@
   </div>
 
   <section aria-labelledby="bases-h" id="t-bases" hidden>
-    <div class="section-head"><h2 id="bases-h">Our bases</h2><a class="more" href="bases/">Open the gallery →</a></div>
+    <div class="section-head"><h2 id="bases-h">From the gallery</h2><a class="more" href="gallery/">Open the gallery →</a></div>
     <div class="teaser-bases" id="t-bases-grid"></div>
   </section>
 
@@ -224,7 +224,7 @@
 </main>
 
 <footer><div class="foot">
-  <nav aria-label="Footer"><a href="">Home</a><a href="members/">Members</a><a href="bases/">Bases</a><a href="videos/">Videos</a><a href="privacy/">Privacy &amp; safety</a><a href="https://github.com/AutoLeadHQ/obsidianpact" rel="noopener">Site code on GitHub</a></nav>
+  <nav aria-label="Footer"><a href="">Home</a><a href="members/">Members</a><a href="gallery/">Gallery</a><a href="videos/">Videos</a><a href="privacy/">Privacy &amp; safety</a><a href="https://github.com/AutoLeadHQ/obsidianpact" rel="noopener">Site code on GitHub</a></nav>
   <p>The Obsidian Pact is a player-run clan and is not affiliated with DonutSMP or Mojang. We never buy or sell DonutSMP items, money or accounts, and this site never asks you to sign in or download anything.</p>
 </div></footer>
 <script src="assets/site.js"></script>
@@ -251,9 +251,9 @@
         `<a class="mini" href="members/"><img src="${OP.esc(OP.head(m))}" alt="" width="64" height="64" loading="lazy" onerror="this.src='${OP.esc(m.avatar)}'"><b>${OP.esc(m.ign)}</b><span class="role ${m.role.replace(" ", "-")}">${OP.esc(m.role)}</span></a>`).join("");
       document.getElementById("t-members").hidden = false;
     }
-    if (d.bases.length) {
-      document.getElementById("t-bases-grid").innerHTML = d.bases.slice(0, 3).map((b) =>
-        `<a href="bases/#${OP.esc(b.id)}"><img src="${OP.esc(b.image)}" alt="${OP.esc(b.title || "Clan base")}" loading="lazy"></a>`).join("");
+    if (d.gallery.length) {
+      document.getElementById("t-bases-grid").innerHTML = d.gallery.slice(0, 3).map((b) =>
+        `<a href="gallery/#${OP.esc(b.id)}"><img src="${OP.esc(b.image)}" alt="${OP.esc(b.title || b.category)}" loading="lazy"></a>`).join("");
       document.getElementById("t-bases").hidden = false;
     }
     if (d.videos.length) {

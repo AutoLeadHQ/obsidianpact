@@ -30,6 +30,15 @@
   .tabs button:hover { color: var(--bone); }
   .tabs .badge { display: inline-block; min-width: 18px; padding: 2px 5px; margin-left: 4px; background: var(--good); color: #0b2410; font-size: .75rem; }
   .tabs .badge[hidden] { display: none; }
+  .tabs .badge.warn { background: #e6c35e; color: #2b2410; }
+  .queue { border-left: 6px solid #e6c35e; }
+  .queue h3 { color: #f3e6bd; }
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cmp div { background: var(--obsidian); padding: 8px 10px; white-space: pre-line; overflow-wrap: anywhere; }
+  .cmp b { display: block; font-size: .75rem; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
+  .prow { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--obsidian-3); }
+  .prow img { width: 48px; height: 48px; image-rendering: pixelated; }
+  .acts { display: flex; gap: 8px; flex-wrap: wrap; }
   .ad-main { max-width: 1240px; margin: 0 auto; padding: 22px 18px 60px; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
   .seg { display: inline-flex; border: 2px solid var(--obsidian-3); }
@@ -84,7 +93,7 @@
   .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
   .item { background: var(--obsidian); padding: 12px; display: grid; gap: 8px; align-content: start; }
   .item img.thumb, .item video.thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; background: #000; }
-  .mrow { display: grid; grid-template-columns: 56px 160px 1fr 90px 70px auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--obsidian-3); }
+  .mrow { display: grid; grid-template-columns: 56px 150px 130px 1fr 70px 64px auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--obsidian-3); }
   .mrow img { width: 48px; height: 48px; image-rendering: pixelated; }
   .note { padding: 12px 14px; background: #2b2410; border-left: 4px solid #e6c35e; color: #f3e6bd; margin-bottom: 16px; }
   .ok { color: var(--good); }
@@ -116,8 +125,8 @@
       <button role="tab" data-tab="live">Live <span class="badge" id="live-badge" hidden></span></button>
       <button role="tab" data-tab="visitors">Visitors</button>
       <button role="tab" data-tab="discord">Discord joins</button>
-      <button role="tab" data-tab="members">Members</button>
-      <button role="tab" data-tab="bases">Bases</button>
+      <button role="tab" data-tab="members">Members <span class="badge warn" id="mem-badge" hidden></span></button>
+      <button role="tab" data-tab="bases">Gallery <span class="badge warn" id="gal-badge" hidden></span></button>
       <button role="tab" data-tab="videos">Videos</button>
     </div>
   </div></div>
@@ -300,6 +309,14 @@
       </tbody></table></div>`;
   }
 
+  // ---------- approval badges (Members / Gallery tabs)
+  function badges(d) {
+    const m = d.members.filter((x) => x.pending_at).length, g = d.pending.length;
+    $("#mem-badge").hidden = !m; $("#mem-badge").textContent = m;
+    $("#gal-badge").hidden = !g; $("#gal-badge").textContent = g;
+  }
+  const catSelect = (cats, cur, attr = 'data-f="category"') => `<select class="in" ${attr}>${cats.map((c) => `<option${c === cur ? " selected" : ""}>${esc(c)}</option>`).join("")}</select>`;
+
   // ---------- content helpers
   async function upload(file, folder) {
     const s = await api("upload", { name: file.name, folder });
@@ -310,7 +327,8 @@
   }
   const armDelete = (btn, fn) => {
     btn.addEventListener("click", async () => {
-      if (!btn.classList.contains("armed")) { btn.classList.add("armed"); btn.textContent = "Click again to delete"; setTimeout(() => { btn.classList.remove("armed"); btn.textContent = "Delete"; }, 3000); return; }
+      const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+      if (!btn.classList.contains("armed")) { btn.classList.add("armed"); btn.textContent = "Click again to " + label.toLowerCase(); setTimeout(() => { btn.classList.remove("armed"); btn.textContent = label; }, 3000); return; }
       btn.disabled = true; await fn().catch((e) => alertIn(btn, e.message));
     });
   };
@@ -319,12 +337,22 @@
 
   // ---------- Members
   async function members() {
-    const d = await api("content");
+    const d = await api("content"); badges(d);
+    const waiting = d.members.filter((m) => m.pending_at);
     view.innerHTML = `
-      <p class="muted">Members appear here when they set their IGN with Pact Bot. They write their own About me with <b>/about</b> in Discord; you can edit or hide anyone. Lower order numbers show first.</p>
+      ${waiting.length ? `<div class="panel queue"><h3>Waiting for your approval (${waiting.length})</h3>
+        <p class="muted" style="margin-top:-6px">Members sent these from Discord with /about. Nothing shows on the website until you approve it. Links are already blocked.</p>
+        ${waiting.map((m) => `<div class="prow" data-id="${esc(m.discord_user_id)}">
+          <img src="${esc(OP.head({ ign: m.ign, skin: m.skin_pending || m.ign, avatar: m.avatar }))}" alt="" onerror="this.src='${esc(m.avatar)}'">
+          <div><b>${esc(m.ign)}</b> <span class="muted">@${esc(m.discord_username || "")} · ${ago(m.pending_at)}</span>
+            <div class="cmp" style="margin-top:8px"><div><b>Now on the site</b>${esc(m.about || "(nothing)")}${m.skin ? `\nSkin: ${esc(m.skin)}` : ""}</div><div><b>New</b>${esc(m.about_pending || "(empty)")}${m.skin_pending ? `\nSkin: ${esc(m.skin_pending)}` : ""}</div></div></div>
+          <div class="acts"><button class="pbtn primary" data-ok>Approve</button><button class="pbtn danger" data-no>Reject</button></div>
+        </div>`).join("")}</div>` : ""}
+      <p class="muted">Members appear here when they set their IGN with Pact Bot. They write their own About me with <b>/about</b> in Discord; you can edit or hide anyone, and your edits go live right away. <b>Skin</b> is the name whose skin to show (for people who use /skin on DonutSMP). Lower order numbers show first.</p>
       <div class="panel">${d.members.length ? d.members.map((m) => `<div class="mrow" data-id="${esc(m.discord_user_id)}">
         <img src="${esc(OP.head(m))}" alt="" onerror="this.src='${esc(m.avatar)}'">
         <div><input class="in" data-f="ign" value="${esc(m.ign)}" aria-label="IGN"><div class="muted" style="margin-top:4px">@${esc(m.discord_username || "")} ${m.left ? '<span class="pill left">Left Discord</span>' : ""}</div></div>
+        <input class="in" data-f="skin" value="${esc(m.skin || "")}" placeholder="Skin (= IGN)" aria-label="Skin name">
         <textarea class="in" data-f="about" maxlength="300" placeholder="About me" aria-label="About me">${esc(m.about || "")}</textarea>
         <label class="chk"><input type="checkbox" data-f="hidden" ${m.hidden ? "checked" : ""}> Hide</label>
         <input class="in" data-f="sort" type="number" value="${m.sort}" aria-label="Order" title="Order">
@@ -332,25 +360,43 @@
       </div>`).join("") : `<p class="muted">No one has set their IGN yet. Once they click "Set your IGN" in #welcome, they show up here.</p>`}</div>`;
     view.querySelectorAll("[data-save]").forEach((btn) => btn.addEventListener("click", () => {
       const row = btn.closest(".mrow"), f = (k) => row.querySelector(`[data-f="${k}"]`);
-      save(btn, () => api("member", { id: row.dataset.id, ign: f("ign").value.trim(), about: f("about").value.trim(), hidden: f("hidden").checked, sort: Number(f("sort").value) }));
+      save(btn, () => api("member", { id: row.dataset.id, ign: f("ign").value.trim(), skin: f("skin").value.trim(), about: f("about").value.trim(), hidden: f("hidden").checked, sort: Number(f("sort").value) }));
     }));
+    view.querySelectorAll(".prow").forEach((row) => {
+      row.querySelector("[data-ok]").onclick = async (e) => { e.target.disabled = true; try { await api("member_approve", { id: row.dataset.id }); members().catch(showErr); } catch (err) { alertIn(e.target, err.message); } };
+      row.querySelector("[data-no]").onclick = async (e) => { e.target.disabled = true; try { await api("member_reject", { id: row.dataset.id }); members().catch(showErr); } catch (err) { alertIn(e.target, err.message); } };
+    });
   }
 
   // ---------- Bases
   async function bases() {
-    const d = await api("content");
+    const d = await api("content"); badges(d);
     view.innerHTML = `
-      <div class="panel"><h3>Add base screenshots</h3>
+      ${d.pending.length ? `<div class="panel queue"><h3>Sent in by visitors, waiting for approval (${d.pending.length})</h3>
+        <p class="muted" style="margin-top:-6px">Only you can see these. Fix the type or title if you want, then Approve to put it in the gallery.</p>
+        <div class="items">${d.pending.map((b) => `<div class="item" data-id="${esc(b.id)}">
+          <a href="${esc(b.image)}" target="_blank" rel="noopener"><img class="thumb" src="${esc(b.image)}" alt=""></a>
+          <div class="muted">From <b style="color:var(--bone)">${esc(b.submitted_by || "?")}</b> · ${ago(b.created_at)}</div>
+          ${catSelect(d.categories, b.category)}
+          <input class="in" data-f="title" value="${esc(b.title)}" placeholder="Title">
+          <input class="in" data-f="builders" value="${esc(b.builders)}" placeholder="By">
+          <input class="in" data-f="caption" value="${esc(b.caption)}" placeholder="Caption">
+          <div class="acts"><button class="pbtn primary" data-ok>Approve</button><button class="pbtn danger" data-no>Reject</button></div>
+        </div>`).join("")}</div></div>` : ""}
+      <div class="panel"><h3>Add screenshots yourself</h3>
         <div class="form">
           <label class="full">Screenshots (pick one or many)<input class="in" type="file" id="b-files" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
+          <label>Type${catSelect(d.categories, "Bases", 'id="b-cat"')}</label>
           <label>Title<input class="in" id="b-title" maxlength="80" placeholder="Main base, spawner farm…"></label>
           <label>Built by<input class="in" id="b-builders" maxlength="120" placeholder="IGNs, comma separated"></label>
           <label class="full">Caption<input class="in" id="b-caption" maxlength="300" placeholder="Optional. Never put coordinates here."></label>
           <div class="full"><button class="pbtn primary" id="b-add">Upload</button> <span id="b-msg" class="muted"></span></div>
         </div>
       </div>
-      <div class="items">${d.bases.map((b) => `<div class="item" data-id="${esc(b.id)}">
+      <h3 class="px" style="font-size:1.3rem;margin:24px 0 12px">In the gallery (${d.gallery.length})</h3>
+      <div class="items" id="live-items">${d.gallery.map((b) => `<div class="item" data-id="${esc(b.id)}">
         <img class="thumb" src="${esc(b.image)}" alt="">
+        ${catSelect(d.categories, b.category)}
         <input class="in" data-f="title" value="${esc(b.title)}" placeholder="Title">
         <input class="in" data-f="builders" value="${esc(b.builders)}" placeholder="Built by">
         <input class="in" data-f="caption" value="${esc(b.caption)}" placeholder="Caption">
@@ -364,15 +410,24 @@
         for (const [i, f] of files.entries()) {
           msg.textContent = `Uploading ${i + 1} of ${files.length}…`;
           const path = await upload(f, "bases");
-          await api("base_add", { image_path: path, title: $("#b-title").value.trim(), builders: $("#b-builders").value.trim(), caption: $("#b-caption").value.trim() });
+          await api("base_add", { image_path: path, category: $("#b-cat").value, title: $("#b-title").value.trim(), builders: $("#b-builders").value.trim(), caption: $("#b-caption").value.trim() });
         }
         bases().catch(showErr);
       } catch (e) { msg.textContent = e.message; msg.className = "err"; $("#b-add").disabled = false; }
     };
-    view.querySelectorAll(".item").forEach((it) => {
+    view.querySelectorAll("#live-items .item").forEach((it) => {
       const f = (k) => it.querySelector(`[data-f="${k}"]`).value;
-      it.querySelector("[data-save]").onclick = (e) => save(e.target, () => api("base_edit", { id: it.dataset.id, title: f("title"), builders: f("builders"), caption: f("caption"), sort: Number(f("sort")) }));
+      it.querySelector("[data-save]").onclick = (e) => save(e.target, () => api("base_edit", { id: it.dataset.id, category: f("category"), title: f("title"), builders: f("builders"), caption: f("caption"), sort: Number(f("sort")) }));
       armDelete(it.querySelector("[data-del]"), async () => { await api("base_delete", { id: it.dataset.id }); it.remove(); });
+    });
+    view.querySelectorAll(".queue .item").forEach((it) => {
+      const f = (k) => it.querySelector(`[data-f="${k}"]`).value;
+      it.querySelector("[data-ok]").onclick = async (e) => {
+        e.target.disabled = true;
+        try { await api("base_approve", { id: it.dataset.id, category: f("category"), title: f("title"), builders: f("builders"), caption: f("caption") }); bases().catch(showErr); }
+        catch (err) { alertIn(e.target, err.message); e.target.disabled = false; }
+      };
+      armDelete(it.querySelector("[data-no]"), async () => { await api("base_delete", { id: it.dataset.id }); bases().catch(showErr); });
     });
   }
 
@@ -417,6 +472,8 @@
   async function start() {
     $("#gate").hidden = true; $("#app").hidden = false;
     go("overview");
+    const refreshBadges = () => api("content").then(badges).catch(() => {});
+    refreshBadges(); setInterval(refreshBadges, 60000);
     // keep the Live badge fresh while on other tabs
     setInterval(() => { if (tab !== "live") api("live", prefs).then((d) => { const n = new Set(d.sessions.filter((s) => prefs.owner || !s.is_owner).map((s) => s.visitor_id)).size; $("#live-badge").hidden = !n; $("#live-badge").textContent = n; }).catch(() => {}); }, 30000);
   }
