@@ -41,7 +41,8 @@
 
   // ---- content
   let cache;
-  const load = () => (cache ||= fetch(API + "?a=public").then((r) => (r.ok ? r.json() : Promise.reject(r.status))));
+  const load = () => (cache ||= fetch(API + "?a=public").then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then(async (d) => { await withUuids(d.members || []); return d; }));
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const month = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", year: "numeric" });
@@ -66,8 +67,67 @@
   // m.skin is the name whose skin they wear (their IGN, or the name they copied with /skin on DonutSMP).
   const java = (n) => /^[A-Za-z0-9_]{3,16}$/.test(n || "");
   const skinOf = (m) => m.skin || m.ign;
-  const head = (m) => (java(skinOf(m)) ? `https://mc-heads.net/avatar/${encodeURIComponent(skinOf(m))}/64` : m.avatar);
-  const body = (m) => (java(skinOf(m)) ? `https://mc-heads.net/body/${encodeURIComponent(skinOf(m))}/170` : null);
+  // Skins: the site draws each member itself from their current skin file (mineatar.io, by account UUID).
+  // Outside renderers (mc-heads, etc.) kept showing people's old skins. mc-heads is only the fallback now.
+  // Name -> UUID via playerdb.co, remembered in this browser for a week.
+  const UUIDS_KEY = "op_uuids";
+  let uuidMap = {};
+  try { uuidMap = JSON.parse(localStorage.getItem(UUIDS_KEY) || "{}"); } catch (_) {}
+  const uuidOf = (n) => { const e = uuidMap[(n || "").toLowerCase()]; return e && Date.now() - e.t < 7 * 864e5 ? e.id : null; };
+  async function lookup(n) {
+    const r = await fetch(`https://playerdb.co/api/player/minecraft/${encodeURIComponent(n)}`);
+    const id = r.ok ? (await r.json())?.data?.player?.raw_id : null;
+    if (id) uuidMap[n.toLowerCase()] = { id, t: Date.now() };
+  }
+  const loadImg = (src) => new Promise((ok, no) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => ok(i); i.onerror = no; i.src = src; });
+  // Front view: 16x32 skin pixels, drawn at 5x. Handles classic/slim arms and old 64x32 skins.
+  function drawSkin(img) {
+    const src = document.createElement("canvas"); src.width = 64; src.height = img.height;
+    const sx = src.getContext("2d"); sx.drawImage(img, 0, 0);
+    const legacy = img.height === 32;
+    const px = sx.getImageData(50, 16, 2, 4).data;
+    let slim = !legacy; for (let k = 3; k < px.length; k += 4) if (px[k]) slim = false;
+    const aw = slim ? 3 : 4, S = 5;
+    const out = (w, h) => { const c = document.createElement("canvas"); c.width = w * S; c.height = h * S; const x = c.getContext("2d"); x.imageSmoothingEnabled = false; return [c, x]; };
+    const part = (x, u, v, w, h, dx, dy, flip) => {
+      x.save();
+      if (flip) { x.translate((dx + w) * S, dy * S); x.scale(-1, 1); x.drawImage(src, u, v, w, h, 0, 0, w * S, h * S); }
+      else x.drawImage(src, u, v, w, h, dx * S, dy * S, w * S, h * S);
+      x.restore();
+    };
+    const [bc, x] = out(16, 32);
+    const L = 4 - aw; // slim arms sit 1px in
+    // base layer
+    part(x, 8, 8, 8, 8, 4, 0); part(x, 20, 20, 8, 12, 4, 8);
+    part(x, 44, 20, aw, 12, L, 8);
+    if (legacy) part(x, 44, 20, aw, 12, 12, 8, true); else part(x, 36, 52, aw, 12, 12, 8);
+    part(x, 4, 20, 4, 12, 4, 20);
+    if (legacy) part(x, 4, 20, 4, 12, 8, 20, true); else part(x, 20, 52, 4, 12, 8, 20);
+    // second layer (hat, jacket, sleeves, pants)
+    part(x, 40, 8, 8, 8, 4, 0);
+    if (!legacy) {
+      part(x, 20, 36, 8, 12, 4, 8); part(x, 44, 36, aw, 12, L, 8); part(x, 52, 52, aw, 12, 12, 8);
+      part(x, 4, 36, 4, 12, 4, 20); part(x, 4, 52, 4, 12, 8, 20);
+    }
+    const [hc, y] = out(8, 8); const hx = y;
+    hx.drawImage(src, 8, 8, 8, 8, 0, 0, 8 * S, 8 * S); hx.drawImage(src, 40, 8, 8, 8, 0, 0, 8 * S, 8 * S);
+    return { body: bc.toDataURL(), head: hc.toDataURL() };
+  }
+  const drawn = {};
+  async function withUuids(list) {
+    const need = [...new Set(list.map(skinOf).filter((n) => java(n) && !uuidOf(n)))];
+    if (need.length) {
+      await Promise.race([Promise.all(need.map((n) => lookup(n).catch(() => {}))), new Promise((ok) => setTimeout(ok, 3000))]);
+      try { localStorage.setItem(UUIDS_KEY, JSON.stringify(uuidMap)); } catch (_) {}
+    }
+    await Promise.race([Promise.all(list.map(async (m) => {
+      const id = uuidOf(skinOf(m));
+      if (!id) return;
+      try { drawn[id] ||= drawSkin(await loadImg(`https://api.mineatar.io/skin/${id}`)); m.drawn = drawn[id]; } catch (_) {}
+    })), new Promise((ok) => setTimeout(ok, 4000))]);
+  }
+  const head = (m) => (m.drawn ? m.drawn.head : java(skinOf(m)) ? `https://mc-heads.net/avatar/${encodeURIComponent(skinOf(m))}/64` : m.avatar);
+  const body = (m) => (m.drawn ? m.drawn.body : java(skinOf(m)) ? `https://mc-heads.net/body/${encodeURIComponent(skinOf(m))}/170` : null);
 
   // Video player: shows a poster with a play button, loads the real player on click (full video, plays right here).
   function player(v) {
