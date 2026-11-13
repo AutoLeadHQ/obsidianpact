@@ -1,6 +1,6 @@
 // Pact Bot — The Obsidian Pact's Discord bot (HTTP interactions, no always-on server).
 // - "Set your IGN" button / /ign or /about opens one pop-up: Minecraft name, About me, skin name
-// - IGN saves right away and becomes the member's server nickname
+// - IGN saves right away; it becomes their nickname only if they haven't picked their own (/nick is theirs to use)
 // - About me and skin name wait for the owner's approval (admin page) before they show on obsidianpact.net;
 //   links and @everyone are refused outright
 // - /ign-lookup lets the owner check anyone's IGN
@@ -120,8 +120,8 @@ const PANEL = {
 };
 
 // IGN is saved right away. A changed About me / skin goes into the approval queue.
-async function saveProfile(userId: string, username: string, ign: string, about: string, skin: string) {
-  const { data: cur } = await db.from("pact_igns").select("about, skin").eq("discord_user_id", userId).maybeSingle();
+async function saveProfile(userId: string, username: string, ign: string, about: string, skin: string, nick: string | null) {
+  const { data: cur } = await db.from("pact_igns").select("ign, about, skin").eq("discord_user_id", userId).maybeSingle();
   const changed = (about || null) !== (cur?.about ?? null) || (skin || null) !== (cur?.skin ?? null);
   await db.from("pact_igns").upsert({
     discord_user_id: userId,
@@ -141,10 +141,10 @@ async function saveProfile(userId: string, username: string, ign: string, about:
       }),
     });
   }
-  await discord(`/guilds/${GUILD_ID}/members/${userId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ nick: ign }),
-  });
+  // Only use the IGN as their nickname if they have no nickname yet (or it was just their old IGN).
+  if (!nick || nick === cur?.ign) {
+    await discord(`/guilds/${GUILD_ID}/members/${userId}`, { method: "PATCH", body: JSON.stringify({ nick: ign }) });
+  }
 }
 
 Deno.serve(async (req) => {
@@ -204,9 +204,13 @@ Deno.serve(async (req) => {
     if (LINK_RE.test(about)) {
       return ephemeral("No links or @everyone in your About me, please. Take them out and try again with **/about**.");
     }
-    EdgeRuntime.waitUntil(saveProfile(user.id, user.username, ign, about, skin).catch((e) => console.error("saveProfile", e)));
+    const nick: string | null = i.member?.nick ?? null;
+    const { data: prev } = await db.from("pact_igns").select("ign").eq("discord_user_id", user.id).maybeSingle();
+    const keepsNick = !!nick && nick !== prev?.ign;
+    EdgeRuntime.waitUntil(saveProfile(user.id, user.username, ign, about, skin, nick).catch((e) => console.error("saveProfile", e)));
     return ephemeral(
-      `Done. Your IGN is set to **${ign}** and your nickname will update in a second.\n` +
+      `Done. Your IGN is set to **${ign}**.` +
+      (keepsNick ? ` Your nickname stays **${nick}**.` : ` It's your nickname for now; change it anytime with **/nick**.`) + "\n" +
       (about || skin
         ? `Your About me goes on the members page (${SITE}) once a Leader approves it.`
         : `You're on the members page: ${SITE}\nTip: type **/about** to add an About me.`),
