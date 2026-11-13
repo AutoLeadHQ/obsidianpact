@@ -50,14 +50,13 @@
   .teaser-bases img { width: 100%; height: 100%; object-fit: cover; transition: transform .2s ease; }
   .teaser-bases a:hover img { transform: scale(1.04); }
 
-  .wall { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; padding: 26px;
+  .art-feature { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 48px; align-items: center; }
+  .art-feature h3 { font: 700 1.8rem/1.1 "Pixelify Sans", sans-serif; margin: 0 0 12px; }
+  .art-feature p { margin: 0 0 12px; color: var(--muted); max-width: 46ch; }
+  .wall { padding: 26px;
     background: repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,.035) 31px 32px),
       repeating-linear-gradient(90deg, transparent 0 31px, rgba(255,255,255,.035) 31px 32px), #120c18;
     border: 4px solid #0c0810; }
-  .wall figure { margin: 0; }
-  .wall .item-frame { padding: 9px; box-shadow: inset 0 0 0 3px var(--frame-dark), 5px 5px 0 rgba(0,0,0,.5); }
-  .wall figcaption { margin-top: 10px; font-size: .9rem; color: var(--muted); }
-  .wall-note { margin: 18px 0 0; color: var(--muted); max-width: 60ch; }
 
   .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; max-width: 640px; counter-reset: s; }
   .steps li { display: grid; grid-template-columns: 52px 1fr; gap: 18px; align-items: start; counter-increment: s; }
@@ -93,7 +92,8 @@
     .hero .item-frame { max-width: 360px; }
     .pillars { grid-template-columns: 1fr; }
     .pillar, .pillar + .pillar { padding: 22px 0 18px; border-left: 0; }
-    .wall { grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 16px; }
+    .art-feature { grid-template-columns: 1fr; gap: 24px; }
+    .art-feature .wall { max-width: 340px; padding: 16px; }
     .server { grid-template-columns: 1fr; gap: 28px; }
     .teaser-bases { grid-template-columns: 1fr 1fr; }
   }
@@ -151,13 +151,14 @@
 
   <section aria-labelledby="art">
     <h2 id="art">Our map art</h2>
-    <div class="wall">
-      <figure><div class="item-frame"><img src="assets/art-portal.png" width="128" height="128" loading="lazy" alt="Map art: the clan name inside a nether portal framed in obsidian"></div><figcaption>Portal</figcaption></figure>
-      <figure><div class="item-frame"><img src="assets/art-crystal.png" width="128" height="128" loading="lazy" alt="Map art: a glowing obsidian crystal over a starry sky"></div><figcaption>Crystal</figcaption></figure>
-      <figure><div class="item-frame"><img src="assets/art-crest.png" width="128" height="128" loading="lazy" alt="Map art: a shield with crossed netherite swords and a banner"></div><figcaption>Crest</figcaption></figure>
-      <figure><div class="item-frame"><img src="assets/art-end.png" width="128" height="128" loading="lazy" alt="Map art: obsidian pillars with end crystals"></div><figcaption>End Pillars</figcaption></figure>
+    <div class="art-feature">
+      <div class="wall"><div class="item-frame"><img src="assets/art-portal.png" width="128" height="128" loading="lazy" alt="Map art: the clan name inside a nether portal framed in obsidian, with obsidianpact.net underneath"></div></div>
+      <div>
+        <h3>The Portal</h3>
+        <p>Our first clan map art: the Obsidian Pact name in a nether portal, placed block by block on DonutSMP.</p>
+        <p>More designs are coming. Want to help build the next one? Say so in the Discord.</p>
+      </div>
     </div>
-    <p class="wall-note">Our clan map art designs. The first one is going up on DonutSMP now, placed block by block. Want to help build the rest? Say so in the Discord.</p>
   </section>
 
   <div class="band">
