@@ -8,7 +8,7 @@ INVITE = "https://discord.gg/c9HDNeTX4z"
 REPO = "https://github.com/AutoLeadHQ/obsidianpact"
 DISCORD_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18.1a19.8 19.8 0 0 0 6 3l1.3-2a12.8 12.8 0 0 1-2-1l.5-.4a14.1 14.1 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.7 19.7 0 0 0 6-3c.5-5.2-.8-9.7-3.6-13.7ZM8 15.4c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.6 8 10.6s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z"/></svg>'
 
-NAV = [("", "Home"), ("#play", "Server"), ("members/", "Members"), ("gallery/", "Gallery"), ("videos/", "Videos")]
+NAV = [("", "Home"), ("server/", "Server"), ("members/", "Members"), ("gallery/", "Gallery"), ("videos/", "Videos")]
 
 
 def page(path, title, desc, body, depth, active=None, script="", noindex=False, extra_head="", nav=True):
@@ -70,6 +70,10 @@ page("", "The Obsidian Pact | Minecraft Server & Clan (obsidianpact.net)",
      "The Obsidian Pact SMP is live at obsidianpact.net: a Vanilla+ Minecraft survival server with /shop, homes, RTP queue, events and voice chat. Join the server and the Discord.",
      part("home.html").replace("{INVITE}", INVITE).replace("{DISCORD_SVG}", DISCORD_SVG).replace("{REPO}", REPO),
      0, active="", script=part("home.js"), extra_head=part("home.css"))
+page("server/", "The Obsidian Pact SMP | Vanilla+ Minecraft Server IP: obsidianpact.net",
+     "The Obsidian Pact SMP is a Vanilla+ Minecraft Java survival server (26.1-26.3): /shop economy, homes, RTP queue, events, voice chat, PvP and raiding. IP: obsidianpact.net",
+     part("server.html").replace("{INVITE}", INVITE).replace("{DISCORD_SVG}", DISCORD_SVG), 1, active="server/",
+     script=part("server.js"), extra_head=part("home.css") + part("server.css"))
 page("members/", "Members | The Obsidian Pact",
      "Meet the members of The Obsidian Pact, a DonutSMP PvP and building clan.",
      part("members.html").replace("{INVITE}", INVITE), 1, active="members/", script=part("members.js"))

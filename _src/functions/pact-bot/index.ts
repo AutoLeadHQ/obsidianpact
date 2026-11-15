@@ -4,6 +4,7 @@
 // - About me and skin name wait for the owner's approval (admin page) before they show on obsidianpact.net;
 //   links and @everyone are refused outright
 // - /ign-lookup lets the owner check anyone's IGN
+// - /link CODE connects a Minecraft account (code comes from /link in game); the server pays the reward
 import nacl from "npm:tweetnacl@1.0.3";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -39,6 +40,12 @@ function discord(path: string, init: RequestInit = {}) {
 const COMMANDS = [
   { name: "ign", description: "Set or change your Minecraft IGN", type: 1 },
   { name: "about", description: "Write the About me shown on the clan website", type: 1 },
+  {
+    name: "link",
+    description: "Link your Minecraft account (get the code with /link in game)",
+    type: 1,
+    options: [{ type: 3, name: "code", description: "The 6-character code from /link in game", required: true, min_length: 6, max_length: 6 }],
+  },
   {
     name: "ign-panel",
     description: "Post the Set your IGN button in this channel",
@@ -147,6 +154,37 @@ async function saveProfile(userId: string, username: string, ign: string, about:
   }
 }
 
+// /link CODE: connect the Minecraft account that made the code to this Discord user, give the Linked role.
+async function linkAccount(userId: string, username: string, rawCode: string) {
+  const code = rawCode.trim().toUpperCase();
+  const { data: mine } = await db.from("pact_mc_links").select("mc_name").eq("discord_user_id", userId).not("linked_at", "is", null).maybeSingle();
+  if (mine) return `You're already linked to **${mine.mc_name}**. One Minecraft account per Discord account.`;
+  const { data: row } = await db.from("pact_mc_links").select("code, mc_uuid, mc_name, created_at, linked_at").eq("code", code).maybeSingle();
+  if (!row) return "That code doesn't exist. Type **/link** in game on obsidianpact.net to get a fresh one.";
+  if (row.linked_at) return "That code was already used.";
+  if (Date.now() - new Date(row.created_at).getTime() > 15 * 60 * 1000) return "That code expired (they last 15 minutes). Type **/link** in game again for a new one.";
+  const { error } = await db.from("pact_mc_links").update({ discord_user_id: userId, linked_at: new Date().toISOString() }).eq("code", code).is("linked_at", null);
+  if (error) return "That Minecraft account is already linked to someone.";
+  EdgeRuntime.waitUntil((async () => {
+    // Linked role (made once), and save their IGN for the website if they don't have one yet.
+    const { data: st } = await db.from("pact_mc_state").select("linked_role_id").eq("id", 1).single();
+    let roleId = st?.linked_role_id as string | null;
+    if (!roleId) {
+      const roles = await discord(`/guilds/${GUILD_ID}/roles`).then((r) => r.ok ? r.json() : []);
+      roleId = roles.find((r: { name: string }) => r.name === "Linked")?.id ?? null;
+      if (!roleId) {
+        const r = await discord(`/guilds/${GUILD_ID}/roles`, { method: "POST", body: JSON.stringify({ name: "Linked", color: 0x55ff99, hoist: false, mentionable: false }) });
+        if (r.ok) roleId = (await r.json()).id;
+      }
+      if (roleId) await db.from("pact_mc_state").update({ linked_role_id: roleId }).eq("id", 1);
+    }
+    if (roleId) await discord(`/guilds/${GUILD_ID}/members/${userId}/roles/${roleId}`, { method: "PUT" });
+    const { data: ign } = await db.from("pact_igns").select("ign").eq("discord_user_id", userId).maybeSingle();
+    if (!ign) await db.from("pact_igns").upsert({ discord_user_id: userId, discord_username: username, ign: row.mc_name, updated_at: new Date().toISOString() });
+  })().catch((e) => console.error("link extras", e)));
+  return `✅ Linked to **${row.mc_name}**! Your $500 reward lands in game within a minute (if you're offline, it's waiting for you).`;
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
 
@@ -177,6 +215,7 @@ Deno.serve(async (req) => {
     const name = i.data?.name;
     if (name === "ign" || name === "about") return json(await profileModal(user.id));
     if (name === "ign-panel") return json({ type: 4, data: PANEL });
+    if (name === "link") return ephemeral(await linkAccount(user.id, user.username, String(i.data.options?.[0]?.value ?? "")));
     if (name === "ign-lookup") {
       const uid = i.data.options?.[0]?.value;
       const { data } = await db.from("pact_igns").select("ign, updated_at").eq("discord_user_id", uid).maybeSingle();
