@@ -1,4 +1,12 @@
 <script>
+  // Copy-IP buttons
+  document.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
+    const label = b.textContent;
+    try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied!"; }
+    catch { b.textContent = b.dataset.copy; }
+    setTimeout(() => (b.textContent = label), 1600);
+  }));
+
   // Social links: add a URL to show the button. Empty ones stay hidden.
   const SOCIALS = [
     ["YouTube", ""],
