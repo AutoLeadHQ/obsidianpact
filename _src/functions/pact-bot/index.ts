@@ -179,6 +179,22 @@ async function linkAccount(userId: string, username: string, rawCode: string) {
       if (roleId) await db.from("pact_mc_state").update({ linked_role_id: roleId }).eq("id", 1);
     }
     if (roleId) await discord(`/guilds/${GUILD_ID}/members/${userId}/roles/${roleId}`, { method: "PUT" });
+    // Roles they earned in game before linking (e.g. Donator)
+    const { data: pending } = await db.from("pact_mc_pending_roles").select("id, role_name").ilike("mc_name", row.mc_name).is("applied_at", null);
+    if (pending?.length) {
+      const roles = await discord(`/guilds/${GUILD_ID}/roles`).then((r) => r.ok ? r.json() : []);
+      for (const pr of pending) {
+        let rid = roles.find((r: { name: string }) => r.name === pr.role_name)?.id;
+        if (!rid) {
+          const r = await discord(`/guilds/${GUILD_ID}/roles`, { method: "POST", body: JSON.stringify({ name: pr.role_name, color: pr.role_name === "Donator" ? 0xf5b301 : 0, hoist: true }) });
+          if (r.ok) rid = (await r.json()).id;
+        }
+        if (rid) {
+          await discord(`/guilds/${GUILD_ID}/members/${userId}/roles/${rid}`, { method: "PUT" });
+          await db.from("pact_mc_pending_roles").update({ applied_at: new Date().toISOString() }).eq("id", pr.id);
+        }
+      }
+    }
     const { data: ign } = await db.from("pact_igns").select("ign").eq("discord_user_id", userId).maybeSingle();
     if (!ign) await db.from("pact_igns").upsert({ discord_user_id: userId, discord_username: username, ign: row.mc_name, updated_at: new Date().toISOString() });
   })().catch((e) => console.error("link extras", e)));

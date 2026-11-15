@@ -5,6 +5,7 @@
 //   link_ack {codes}           -> marks those rewarded
 //   status {online, players, max, names} -> keeps one live status message in #server-status up to date
 //   event {open}               -> posts "event starting / ended" in the events (or status) channel
+//   grant_role {mc_name, role} -> gives an allowed Discord role (e.g. Supporter) to the linked Discord user, or queues it until they /link
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const GUILD_ID = "1570168045928976556";
@@ -102,6 +103,30 @@ async function postEvent(open: boolean) {
   return { ok: r.ok, status: r.status };
 }
 
+// Roles the server is allowed to hand out (never staff roles).
+const GRANTABLE: Record<string, number> = { Supporter: 0xf5b301, Donator: 0xf5b301 };
+
+async function ensureRole(name: string): Promise<string | null> {
+  const roles = await discord(`/guilds/${GUILD_ID}/roles`).then((r) => r.ok ? r.json() : []);
+  const found = roles.find((r: { name: string }) => r.name === name);
+  if (found) return found.id;
+  const r = await discord(`/guilds/${GUILD_ID}/roles`, { method: "POST", body: JSON.stringify({ name, color: GRANTABLE[name] ?? 0, hoist: true, mentionable: false }) });
+  return r.ok ? (await r.json()).id : null;
+}
+
+async function grantRole(mcName: string, role: string) {
+  if (!(role in GRANTABLE)) return { error: "role not allowed" };
+  const { data: link } = await db.from("pact_mc_links").select("discord_user_id").ilike("mc_name", mcName).not("linked_at", "is", null).maybeSingle();
+  if (!link) {
+    await db.from("pact_mc_pending_roles").insert({ mc_name: mcName, role_name: role });
+    return { queued: true };
+  }
+  const roleId = await ensureRole(role);
+  if (!roleId) return { error: "could not create role" };
+  const r = await discord(`/guilds/${GUILD_ID}/members/${link.discord_user_id}/roles/${roleId}`, { method: "PUT" });
+  return { granted: r.ok, status: r.status };
+}
+
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => CODE_CHARS[b % CODE_CHARS.length]).join("");
 
@@ -139,6 +164,8 @@ Deno.serve(async (req) => {
         return json(await updateStatus({ online: !!b.online, players: Number(b.players) || 0, max: Number(b.max) || 100, names: Array.isArray(b.names) ? b.names.map(String) : [] }));
       case "event":
         return json(await postEvent(!!b.open));
+      case "grant_role":
+        return json(await grantRole(String(b.mc_name ?? ""), String(b.role ?? "")));
       case "setup": {
         const st = await channels(await state());
         return json(st);
