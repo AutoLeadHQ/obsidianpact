@@ -17,6 +17,7 @@ const API = "https://discord.com/api/v10";
 const PURPLE = 0x7c4dff;
 const SITE = "https://obsidianpact.net/members/";
 const MODLOG_CHANNEL_ID = "1570569897564708894";
+const ANNOUNCE_CHANNEL_ID = "1570678978535096341"; // #bot-commands
 const LINK_RE = /(https?:\/\/|www\.|discord\.gg|discord(app)?\.com\/invite|\b[a-z0-9-]+\.(com|net|org|gg|xyz|io|me|ly|co|tv|app|link|site|shop|ru)\b|@everyone|@here)/i;
 
 const db = createClient(
@@ -243,8 +244,12 @@ async function linkReply(userId: string, username: string, raw: string) {
   catch (e) { console.error("link failed", e); reply = "Something went wrong linking. Type **/link** in game again for a new code."; }
   console.log("link attempt", JSON.stringify({ user: username, code: raw, reply: reply.slice(0, 80) }));
   if (reply.startsWith("✅")) {
+    // The reply is private (no spam in #welcome); the shout-out goes to #bot-commands if the bot may post there.
     const mc = reply.match(/\*\*(.+?)\*\*/)?.[1] ?? "their account";
-    return json({ type: 4, data: { content: `🔗 <@${userId}> linked their Minecraft account **${mc}** and got **$500**! Type **/link** in game to do the same.`, allowed_mentions: { parse: [] } } });
+    EdgeRuntime.waitUntil(discord(`/channels/${ANNOUNCE_CHANNEL_ID}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: `🔗 <@${userId}> linked their Minecraft account **${mc}** and got **$500**! Type **/link** in game to do the same.`, allowed_mentions: { parse: [] } }),
+    }).then(async (r) => { if (!r.ok) console.log("announce failed", r.status, (await r.text()).slice(0, 120)); }).catch(() => {}));
   }
   return ephemeral(reply);
 }
