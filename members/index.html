@@ -57,6 +57,7 @@
   const roster = document.getElementById("roster");
   const count = document.getElementById("count");
   let all = [];
+  let badges = {};
   function card(m) {
     const b = OP.body(m);
     const pic = b
@@ -66,7 +67,7 @@
       <div class="skin">${b ? `<img class="disc" src="${OP.esc(m.avatar)}" alt="" loading="lazy">` : ""}${pic}</div>
       <div class="info">
         <h3>${OP.esc(m.ign)}</h3>
-        <div class="meta"><span class="role ${m.role.replace(" ", "-")}">${OP.esc(m.role)}</span><span>Member since ${OP.month(m.since)}</span></div>
+        <div class="meta"><span class="role ${m.role.replace(" ", "-")}">${OP.esc(m.role)}</span>${(badges[m.ign.toLowerCase()] || []).map((b) => `<span class="role ${b.replace(/ /g, "-")}">${OP.esc(b)}</span>`).join("")}<span>Member since ${OP.month(m.since)}</span></div>
         ${m.about ? `<p>${OP.esc(m.about)}</p>` : `<p class="none">No About me yet.</p>`}
       </div>
     </article>`;
@@ -80,6 +81,9 @@
       : `<div class="empty"><strong>The roster is filling up.</strong>Members show up here once they set their IGN in the Discord. Steps are below.</div>`;
   }
   document.getElementById("q").addEventListener("input", render);
+  // Discord roles like Media and Supporter show as badges (updated from Discord every 10 minutes)
+  fetch("https://qgwbrwqyeyvrilwemtvy.supabase.co/functions/v1/pact-badges").then((r) => r.json())
+    .then((d) => { badges = d.badges || {}; if (all.length) render(); }).catch(() => {});
   OP.load().then((d) => { all = d.members; render(); })
     .catch(() => { roster.innerHTML = `<div class="empty"><strong>Couldn't load the roster.</strong>Refresh the page to try again.</div>`; });
 </script>
