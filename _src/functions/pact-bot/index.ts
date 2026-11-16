@@ -44,7 +44,13 @@ const COMMANDS = [
     name: "link",
     description: "Link your Minecraft account (get the code with /link in game)",
     type: 1,
-    options: [{ type: 3, name: "code", description: "The 6-character code from /link in game", required: true, min_length: 6, max_length: 6 }],
+    options: [{ type: 3, name: "code", description: "The code from /link in game (leave empty to get a box to paste it in)", required: false }],
+  },
+  {
+    name: "link-panel",
+    description: "Post the Link your Minecraft account button in this channel",
+    type: 1,
+    default_member_permissions: "32",
   },
   {
     name: "ign-panel",
@@ -156,7 +162,9 @@ async function saveProfile(userId: string, username: string, ign: string, about:
 
 // /link CODE: connect the Minecraft account that made the code to this Discord user, give the Linked role.
 async function linkAccount(userId: string, username: string, rawCode: string) {
-  const code = rawCode.trim().toUpperCase();
+  // accept "ABC123", "/link ABC123", "link abc123", with spaces etc.
+  const code = rawCode.toUpperCase().replace(/^\s*\/?\s*LINK\s*/, "").replace(/[^A-Z0-9]/g, "").slice(0, 6);
+  if (code.length !== 6) return "Paste the 6-character code from **/link** in game (it looks like `AB12CD`).";
   const { data: mine } = await db.from("pact_mc_links").select("mc_name").eq("discord_user_id", userId).not("linked_at", "is", null).maybeSingle();
   if (mine) return `You're already linked to **${mine.mc_name}**. One Minecraft account per Discord account.`;
   const { data: row } = await db.from("pact_mc_links").select("code, mc_uuid, mc_name, created_at, linked_at").eq("code", code).maybeSingle();
@@ -164,7 +172,7 @@ async function linkAccount(userId: string, username: string, rawCode: string) {
   if (row.linked_at) return "That code was already used.";
   if (Date.now() - new Date(row.created_at).getTime() > 15 * 60 * 1000) return "That code expired (they last 15 minutes). Type **/link** in game again for a new one.";
   const { error } = await db.from("pact_mc_links").update({ discord_user_id: userId, linked_at: new Date().toISOString() }).eq("code", code).is("linked_at", null);
-  if (error) return "That Minecraft account is already linked to someone.";
+  if (error) { console.error("link update", JSON.stringify(error)); return "That Minecraft account is already linked to someone."; }
   EdgeRuntime.waitUntil((async () => {
     // Linked role (made once), and save their IGN for the website if they don't have one yet.
     const { data: st } = await db.from("pact_mc_state").select("linked_role_id").eq("id", 1).single();
@@ -201,6 +209,46 @@ async function linkAccount(userId: string, username: string, rawCode: string) {
   return `✅ Linked to **${row.mc_name}**! Your $500 reward lands in game within a minute (if you're offline, it's waiting for you).`;
 }
 
+const LINK_MODAL = {
+  type: 9,
+  data: {
+    custom_id: "link_modal",
+    title: "Link your Minecraft account",
+    components: [{
+      type: 1,
+      components: [{
+        type: 4, custom_id: "code", label: "Your code (type /link in game to get it)", style: 1,
+        min_length: 6, max_length: 20, required: true, placeholder: "AB12CD",
+      }],
+    }],
+  },
+};
+
+const LINK_PANEL = {
+  embeds: [{
+    title: "🔗 Link your Minecraft account — get $500",
+    description:
+      "1. On the server (**obsidianpact.net**) type **/link** to get a code.\n" +
+      "2. Click the button below and paste the code.\n" +
+      "Your **$500** arrives in game within a minute, and you get the **Linked** role.",
+    color: PURPLE,
+  }],
+  components: [{ type: 1, components: [{ type: 2, style: 3, label: "Link my account", custom_id: "open_link" }] }],
+};
+
+/** Successful links are shown to everyone in the channel; problems only to the user. */
+async function linkReply(userId: string, username: string, raw: string) {
+  let reply: string;
+  try { reply = await linkAccount(userId, username, raw); }
+  catch (e) { console.error("link failed", e); reply = "Something went wrong linking. Type **/link** in game again for a new code."; }
+  console.log("link attempt", JSON.stringify({ user: username, code: raw, reply: reply.slice(0, 80) }));
+  if (reply.startsWith("✅")) {
+    const mc = reply.match(/\*\*(.+?)\*\*/)?.[1] ?? "their account";
+    return json({ type: 4, data: { content: `🔗 <@${userId}> linked their Minecraft account **${mc}** and got **$500**! Type **/link** in game to do the same.`, allowed_mentions: { parse: [] } } });
+  }
+  return ephemeral(reply);
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
 
@@ -222,6 +270,7 @@ Deno.serve(async (req) => {
 
   const i = JSON.parse(body);
   const user = i.member?.user ?? i.user;
+  console.log("interaction", JSON.stringify({ type: i.type, name: i.data?.name ?? i.data?.custom_id, user: user?.username, opts: i.data?.options }));
 
   // Discord checking the endpoint
   if (i.type === 1) return json({ type: 1 });
@@ -231,7 +280,12 @@ Deno.serve(async (req) => {
     const name = i.data?.name;
     if (name === "ign" || name === "about") return json(await profileModal(user.id));
     if (name === "ign-panel") return json({ type: 4, data: PANEL });
-    if (name === "link") return ephemeral(await linkAccount(user.id, user.username, String(i.data.options?.[0]?.value ?? "")));
+    if (name === "link") {
+      const raw = String(i.data.options?.[0]?.value ?? "");
+      if (!raw.trim()) return json(LINK_MODAL);
+      return await linkReply(user.id, user.username, raw);
+    }
+    if (name === "link-panel") return json({ type: 4, data: LINK_PANEL });
     if (name === "ign-lookup") {
       const uid = i.data.options?.[0]?.value;
       const { data } = await db.from("pact_igns").select("ign, updated_at").eq("discord_user_id", uid).maybeSingle();
@@ -241,6 +295,12 @@ Deno.serve(async (req) => {
 
   // Button click
   if (i.type === 3 && i.data?.custom_id === "set_ign") return json(await profileModal(user.id));
+  if (i.type === 3 && i.data?.custom_id === "open_link") return json(LINK_MODAL);
+  if (i.type === 5 && i.data?.custom_id === "link_modal") {
+    const raw = String((i.data.components ?? []).flatMap((r: { components: { custom_id: string; value: string }[] }) => r.components)
+      .find((c: { custom_id: string }) => c.custom_id === "code")?.value ?? "");
+    return await linkReply(user.id, user.username, raw);
+  }
 
   // Pop-up submitted
   if (i.type === 5 && i.data?.custom_id === "ign_modal") {
