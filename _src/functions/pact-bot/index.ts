@@ -252,15 +252,15 @@ const CLIPS_PANEL = {
     title: "🎬 Submit your clips",
     description:
       "Got a sick PvP fight, a big build, a funny moment or an event on **The Obsidian Pact**? Send it in!\n\n" +
-      "**How:** upload your video to YouTube (unlisted is fine), TikTok, Medal, Google Drive or Streamable, " +
-      "then click **Submit a clip** below and paste the link. Make sure the link can be opened by anyone.\n\n" +
+      "**How:** click **Submit a clip** below and either **upload the video file** (.mp4, up to your Discord upload limit, 20 MB on free accounts) " +
+      "or paste a link (YouTube, TikTok, Medal, Google Drive, Streamable...) for longer videos. Make sure links can be opened by anyone.\n\n" +
       "**Rules**\n" +
       "• Your own footage, recorded on our server\n" +
       "• No copyrighted music (game sound or no music is best)\n" +
       "• Keep it clean: no slurs or other people's personal info\n\n" +
       "**By submitting a clip you agree** that The Obsidian Pact can use it, as-is or edited, on our website " +
       "(obsidianpact.net), in our YouTube and TikTok videos and on our other social media. We always credit you.\n\n" +
-      "**Rewards:** the best clips get featured with your name on them, and regular creators can earn shop coins and the **Media** rank.",
+      "**Rewards:** the best clips get featured with your name on them, and regular creators can earn **Crystals** and the **Media** rank.",
     color: PURPLE,
   }],
   components: [{ type: 1, components: [{ type: 2, style: 3, label: "Submit a clip", emoji: { name: "🎬" }, custom_id: "open_clip" }] }],
@@ -272,41 +272,65 @@ const CLIP_MODAL = {
     custom_id: "clip_modal",
     title: "Submit a clip",
     components: [
-      { type: 1, components: [{ type: 4, custom_id: "url", label: "Link to your clip", style: 1, min_length: 10, max_length: 300, required: true, placeholder: "https://youtube.com/..." }] },
-      { type: 1, components: [{ type: 4, custom_id: "note", label: "What happens in it?", style: 2, max_length: 400, required: false, placeholder: "1v3 clutch at spawn, my castle build, event win..." }] },
-      { type: 1, components: [{ type: 4, custom_id: "ign", label: "Your in-game name (for credit)", style: 1, max_length: 17, required: false }] },
+      { type: 18, label: "Upload your video", description: "An .mp4 or other video file. Too big? Paste a link below instead.",
+        component: { type: 19, custom_id: "file", min_values: 0, max_values: 1, required: false } },
+      { type: 18, label: "Or a link to your clip", component: { type: 4, custom_id: "url", style: 1, max_length: 300, required: false, placeholder: "https://youtube.com/..." } },
+      { type: 18, label: "What happens in it?", component: { type: 4, custom_id: "note", style: 2, max_length: 400, required: false, placeholder: "1v3 clutch at spawn, my castle build, event win..." } },
+      { type: 18, label: "Your in-game name (for credit)", component: { type: 4, custom_id: "ign", style: 1, max_length: 17, required: false } },
     ],
   },
 };
 
-async function submitClip(userId: string, username: string, url: string, note: string, ign: string) {
-  if (!CLIP_URL_RE.test(url)) return "That doesn't look like a link. Paste the full link, starting with https://";
-  if (/@everyone|@here/.test(note)) return "No @everyone or @here, please.";
-  if (!ign) {
-    const { data } = await db.from("pact_igns").select("ign").eq("discord_user_id", userId).maybeSingle();
-    ign = data?.ign ?? "";
+type Attachment = { id: string; url: string; filename: string; size: number; content_type?: string };
+
+/** Checks the form; the slow part (copying the video into #mod-log) runs after we've answered Discord. */
+async function submitClip(userId: string, username: string, url: string, note: string, ign: string, file: Attachment | null) {
+  if (!file && !url) return { reply: "Upload a video file or paste a link to it." };
+  if (url && !CLIP_URL_RE.test(url)) return { reply: "That doesn't look like a link. Paste the full link, starting with https://" };
+  if (/@everyone|@here/.test(note)) return { reply: "No @everyone or @here, please." };
+  if (file && file.content_type && !/^video\//.test(file.content_type) && !/\.(mp4|mov|webm|mkv|m4v)$/i.test(file.filename)) {
+    return { reply: "That file isn't a video. Upload an .mp4 (or .mov / .webm), or paste a link." };
   }
-  const { data: row } = await db.from("pact_clip_submissions").insert({ discord_user_id: userId, username, ign: ign || null, url, note: note || null }).select("id").single();
-  const r = await discord(`/channels/${MODLOG_CHANNEL_ID}/messages`, {
-    method: "POST",
-    body: JSON.stringify({
-      embeds: [{
-        title: `🎬 New clip #${row?.id ?? "?"}`,
-        url,
-        description: (note ? note + "\n\n" : "") + url,
-        color: PURPLE,
-        fields: [
-          { name: "From", value: `<@${userId}> (${username})`, inline: true },
-          { name: "In-game name", value: ign || "not given", inline: true },
-        ],
-        footer: { text: "They agreed the clip can be used on the website, YouTube, TikTok and socials with credit." },
-        timestamp: new Date().toISOString(),
-      }],
-      allowed_mentions: { parse: [] },
-    }),
-  });
-  if (!r.ok) console.log("clip post failed", r.status, (await r.text()).slice(0, 160));
-  return "✅ Thanks! Your clip was sent to the staff. If it gets used, you'll be credited" + (ign ? ` as **${ign}**` : "") + ".";
+  const work = (async () => {
+    if (!ign) {
+      const { data } = await db.from("pact_igns").select("ign").eq("discord_user_id", userId).maybeSingle();
+      ign = data?.ign ?? "";
+    }
+    const { data: row } = await db.from("pact_clip_submissions")
+      .insert({ discord_user_id: userId, username, ign: ign || null, url: url || (file ? `upload:${file.filename}` : ""), note: note || null }).select("id").single();
+    const embed = {
+      title: `🎬 New clip #${row?.id ?? "?"}`,
+      ...(url ? { url } : {}),
+      description: [note, url, file ? `📎 ${file.filename} (${(file.size / 1048576).toFixed(1)} MB) attached below` : ""].filter(Boolean).join("\n\n"),
+      color: PURPLE,
+      fields: [
+        { name: "From", value: `<@${userId}> (${username})`, inline: true },
+        { name: "In-game name", value: ign || "not given", inline: true },
+      ],
+      footer: { text: "They agreed the clip can be used on the website, YouTube, TikTok and socials with credit." },
+      timestamp: new Date().toISOString(),
+    };
+    const payload = { embeds: [embed], allowed_mentions: { parse: [] } };
+    let r: Response;
+    if (file) {
+      // copy the upload into #mod-log so it stays (the link Discord gives us expires)
+      const vid = await fetch(file.url);
+      const form = new FormData();
+      form.append("payload_json", JSON.stringify({ ...payload, attachments: [{ id: 0, filename: file.filename }] }));
+      form.append("files[0]", new Blob([await vid.arrayBuffer()], { type: file.content_type || "video/mp4" }), file.filename);
+      r = await fetch(`${API}/channels/${MODLOG_CHANNEL_ID}/messages`, { method: "POST", headers: { Authorization: `Bot ${Deno.env.get("DISCORD_BOT_TOKEN")}` }, body: form });
+      if (!r.ok) {
+        // too big for the bot to re-upload: post the original link instead (Discord links expire after about a day)
+        console.log("clip upload failed", r.status, (await r.text()).slice(0, 200));
+        embed.description += `\n\n⚠️ Too big to copy here. Download it within 24 hours: ${file.url}`;
+        r = await discord(`/channels/${MODLOG_CHANNEL_ID}/messages`, { method: "POST", body: JSON.stringify(payload) });
+      }
+    } else {
+      r = await discord(`/channels/${MODLOG_CHANNEL_ID}/messages`, { method: "POST", body: JSON.stringify(payload) });
+    }
+    if (!r.ok) console.log("clip post failed", r.status, (await r.text()).slice(0, 200));
+  })().catch((e) => console.error("clip work", e));
+  return { reply: "✅ Thanks! Your clip was sent to the staff. If it gets used, you'll be credited" + (ign ? ` as **${ign}**` : "") + ".", work };
 }
 
 /** Successful links are shown to everyone in the channel; problems only to the user. */
@@ -335,7 +359,10 @@ Deno.serve(async (req) => {
     if (url.searchParams.get("clips_panel") === "1") {
       const { data: k } = await db.from("pact_site_keys").select("mc_key").eq("id", 1).single();
       if (!k?.mc_key || url.searchParams.get("key") !== k.mc_key) return new Response("forbidden", { status: 403 });
-      const r = await discord(`/channels/${CLIPS_CHANNEL_ID}/messages`, { method: "POST", body: JSON.stringify(CLIPS_PANEL) });
+      const edit = url.searchParams.get("edit");
+      const r = edit
+        ? await discord(`/channels/${CLIPS_CHANNEL_ID}/messages/${edit}`, { method: "PATCH", body: JSON.stringify(CLIPS_PANEL) })
+        : await discord(`/channels/${CLIPS_CHANNEL_ID}/messages`, { method: "POST", body: JSON.stringify(CLIPS_PANEL) });
       return new Response(`${r.status} ${(await r.text()).slice(0, 200)}`);
     }
     return new Response("Pact Bot is running");
@@ -382,11 +409,20 @@ Deno.serve(async (req) => {
   if (i.type === 3 && i.data?.custom_id === "open_link") return json(LINK_MODAL);
   if (i.type === 3 && i.data?.custom_id === "open_clip") return json(CLIP_MODAL);
   if (i.type === 5 && i.data?.custom_id === "clip_modal") {
-    const f = (id: string) => String((i.data.components ?? []).flatMap((r: { components: { custom_id: string; value: string }[] }) => r.components)
-      .find((c: { custom_id: string }) => c.custom_id === id)?.value ?? "").trim();
+    // components come back wrapped in labels ({component}) or action rows ({components}); flatten both
+    type C = { custom_id?: string; value?: string; values?: string[]; component?: C; components?: C[] };
+    const flat: C[] = [];
+    const walk = (c: C) => { if (c.custom_id) flat.push(c); if (c.component) walk(c.component); (c.components ?? []).forEach(walk); };
+    (i.data.components ?? []).forEach(walk);
+    const f = (id: string) => String(flat.find((c) => c.custom_id === id)?.value ?? "").trim();
+    const fileId = flat.find((c) => c.custom_id === "file")?.values?.[0];
+    const file: Attachment | null = fileId ? (i.data.resolved?.attachments?.[fileId] ?? null) : null;
     let reply: string;
-    try { reply = await submitClip(user.id, user.username, f("url"), f("note"), f("ign")); }
-    catch (e) { console.error("clip failed", e); reply = "Something went wrong sending your clip, try again in a minute."; }
+    try {
+      const res = await submitClip(user.id, user.username, f("url"), f("note"), f("ign"), file);
+      reply = res.reply;
+      if (res.work) EdgeRuntime.waitUntil(res.work);
+    } catch (e) { console.error("clip failed", e); reply = "Something went wrong sending your clip, try again in a minute."; }
     return ephemeral(reply);
   }
   if (i.type === 5 && i.data?.custom_id === "link_modal") {
