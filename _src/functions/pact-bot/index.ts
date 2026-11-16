@@ -5,6 +5,8 @@
 //   links and @everyone are refused outright
 // - /ign-lookup lets the owner check anyone's IGN
 // - /link CODE connects a Minecraft account (code comes from /link in game); the server pays the reward
+// - #submit-clips: read-only channel with a "Submit a clip" button; the pop-up form sends the clip to #mod-log
+//   for Max to review (saved in pact_clip_submissions). /clips-panel posts the button anywhere; GET ?clips_panel=1&key=… posts it in #submit-clips
 import nacl from "npm:tweetnacl@1.0.3";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -18,6 +20,8 @@ const PURPLE = 0x7c4dff;
 const SITE = "https://obsidianpact.net/members/";
 const MODLOG_CHANNEL_ID = "1570569897564708894";
 const ANNOUNCE_CHANNEL_ID = "1570678978535096341"; // #bot-commands
+const CLIPS_CHANNEL_ID = "1571760953085796364"; // #submit-clips (read-only for members)
+const CLIP_URL_RE = /^https?:\/\/\S+$/i;
 const LINK_RE = /(https?:\/\/|www\.|discord\.gg|discord(app)?\.com\/invite|\b[a-z0-9-]+\.(com|net|org|gg|xyz|io|me|ly|co|tv|app|link|site|shop|ru)\b|@everyone|@here)/i;
 
 const db = createClient(
@@ -50,6 +54,12 @@ const COMMANDS = [
   {
     name: "link-panel",
     description: "Post the Link your Minecraft account button in this channel",
+    type: 1,
+    default_member_permissions: "32",
+  },
+  {
+    name: "clips-panel",
+    description: "Post the Submit a clip button in this channel",
     type: 1,
     default_member_permissions: "32",
   },
@@ -237,6 +247,68 @@ const LINK_PANEL = {
   components: [{ type: 1, components: [{ type: 2, style: 3, label: "Link my account", custom_id: "open_link" }] }],
 };
 
+const CLIPS_PANEL = {
+  embeds: [{
+    title: "🎬 Submit your clips",
+    description:
+      "Got a sick PvP fight, a big build, a funny moment or an event on **The Obsidian Pact**? Send it in!\n\n" +
+      "**How:** upload your video to YouTube (unlisted is fine), TikTok, Medal, Google Drive or Streamable, " +
+      "then click **Submit a clip** below and paste the link. Make sure the link can be opened by anyone.\n\n" +
+      "**Rules**\n" +
+      "• Your own footage, recorded on our server\n" +
+      "• No copyrighted music (game sound or no music is best)\n" +
+      "• Keep it clean: no slurs or other people's personal info\n\n" +
+      "**By submitting a clip you agree** that The Obsidian Pact can use it, as-is or edited, on our website " +
+      "(obsidianpact.net), in our YouTube and TikTok videos and on our other social media. We always credit you.\n\n" +
+      "**Rewards:** the best clips get featured with your name on them, and regular creators can earn shop coins and the **Media** rank.",
+    color: PURPLE,
+  }],
+  components: [{ type: 1, components: [{ type: 2, style: 3, label: "Submit a clip", emoji: { name: "🎬" }, custom_id: "open_clip" }] }],
+};
+
+const CLIP_MODAL = {
+  type: 9,
+  data: {
+    custom_id: "clip_modal",
+    title: "Submit a clip",
+    components: [
+      { type: 1, components: [{ type: 4, custom_id: "url", label: "Link to your clip", style: 1, min_length: 10, max_length: 300, required: true, placeholder: "https://youtube.com/..." }] },
+      { type: 1, components: [{ type: 4, custom_id: "note", label: "What happens in it?", style: 2, max_length: 400, required: false, placeholder: "1v3 clutch at spawn, my castle build, event win..." }] },
+      { type: 1, components: [{ type: 4, custom_id: "ign", label: "Your in-game name (for credit)", style: 1, max_length: 17, required: false }] },
+    ],
+  },
+};
+
+async function submitClip(userId: string, username: string, url: string, note: string, ign: string) {
+  if (!CLIP_URL_RE.test(url)) return "That doesn't look like a link. Paste the full link, starting with https://";
+  if (/@everyone|@here/.test(note)) return "No @everyone or @here, please.";
+  if (!ign) {
+    const { data } = await db.from("pact_igns").select("ign").eq("discord_user_id", userId).maybeSingle();
+    ign = data?.ign ?? "";
+  }
+  const { data: row } = await db.from("pact_clip_submissions").insert({ discord_user_id: userId, username, ign: ign || null, url, note: note || null }).select("id").single();
+  const r = await discord(`/channels/${MODLOG_CHANNEL_ID}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      embeds: [{
+        title: `🎬 New clip #${row?.id ?? "?"}`,
+        url,
+        description: (note ? note + "\n\n" : "") + url,
+        color: PURPLE,
+        fields: [
+          { name: "From", value: `<@${userId}> (${username})`, inline: true },
+          { name: "In-game name", value: ign || "not given", inline: true },
+        ],
+        footer: { text: "They agreed the clip can be used on the website, YouTube, TikTok and socials with credit." },
+        timestamp: new Date().toISOString(),
+      }],
+      allowed_mentions: { parse: [] },
+    }),
+  });
+  if (!r.ok) console.log("clip post failed", r.status, (await r.text()).slice(0, 160));
+  return "✅ Thanks! Your clip was sent to the staff. If it gets used, you'll be credited" + (ign ? ` as **${ign}**` : "") + ".";
+}
+
 /** Successful links are shown to everyone in the channel; problems only to the user. */
 async function linkReply(userId: string, username: string, raw: string) {
   let reply: string;
@@ -260,6 +332,12 @@ Deno.serve(async (req) => {
   // Registers the slash commands (idempotent). Visit once after the token is set.
   if (req.method === "GET") {
     if (url.searchParams.get("register") === "1") return json(await registerCommands());
+    if (url.searchParams.get("clips_panel") === "1") {
+      const { data: k } = await db.from("pact_site_keys").select("mc_key").eq("id", 1).single();
+      if (!k?.mc_key || url.searchParams.get("key") !== k.mc_key) return new Response("forbidden", { status: 403 });
+      const r = await discord(`/channels/${CLIPS_CHANNEL_ID}/messages`, { method: "POST", body: JSON.stringify(CLIPS_PANEL) });
+      return new Response(`${r.status} ${(await r.text()).slice(0, 200)}`);
+    }
     return new Response("Pact Bot is running");
   }
 
@@ -291,6 +369,7 @@ Deno.serve(async (req) => {
       return await linkReply(user.id, user.username, raw);
     }
     if (name === "link-panel") return json({ type: 4, data: LINK_PANEL });
+    if (name === "clips-panel") return json({ type: 4, data: CLIPS_PANEL });
     if (name === "ign-lookup") {
       const uid = i.data.options?.[0]?.value;
       const { data } = await db.from("pact_igns").select("ign, updated_at").eq("discord_user_id", uid).maybeSingle();
@@ -301,6 +380,15 @@ Deno.serve(async (req) => {
   // Button click
   if (i.type === 3 && i.data?.custom_id === "set_ign") return json(await profileModal(user.id));
   if (i.type === 3 && i.data?.custom_id === "open_link") return json(LINK_MODAL);
+  if (i.type === 3 && i.data?.custom_id === "open_clip") return json(CLIP_MODAL);
+  if (i.type === 5 && i.data?.custom_id === "clip_modal") {
+    const f = (id: string) => String((i.data.components ?? []).flatMap((r: { components: { custom_id: string; value: string }[] }) => r.components)
+      .find((c: { custom_id: string }) => c.custom_id === id)?.value ?? "").trim();
+    let reply: string;
+    try { reply = await submitClip(user.id, user.username, f("url"), f("note"), f("ign")); }
+    catch (e) { console.error("clip failed", e); reply = "Something went wrong sending your clip, try again in a minute."; }
+    return ephemeral(reply);
+  }
   if (i.type === 5 && i.data?.custom_id === "link_modal") {
     const raw = String((i.data.components ?? []).flatMap((r: { components: { custom_id: string; value: string }[] }) => r.components)
       .find((c: { custom_id: string }) => c.custom_id === "code")?.value ?? "");
