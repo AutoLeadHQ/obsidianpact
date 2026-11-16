@@ -104,6 +104,16 @@ async function postEvent(open: boolean) {
   return { ok: r.ok, status: r.status };
 }
 
+// Weekly market post (new booms/crashes every Saturday) in #events
+async function postMarket(title: string, lines: string[]) {
+  const st = await channels(await state());
+  const clean = (t: string) => String(t).replace(/@/g, "＠").slice(0, 200);
+  const embed = { title: clean(title).slice(0, 100), description: lines.slice(0, 15).map(clean).join("\n"), color: 0xf5b301,
+    footer: { text: "Prices on /shop and /sell • join at obsidianpact.net • type /market in game" } };
+  const r = await discord(`/channels/${st.events_channel_id}/messages`, { method: "POST", body: JSON.stringify({ embeds: [embed], allowed_mentions: { parse: [] } }) });
+  return { ok: r.ok, status: r.status };
+}
+
 // Roles the server is allowed to hand out (never staff roles).
 const GRANTABLE: Record<string, number> = { Supporter: 0xf5b301, Donator: 0xf5b301, Media: 0xe62117 };
 
@@ -177,6 +187,8 @@ Deno.serve(async (req) => {
         return json(await updateStatus({ online: !!b.online, players: Number(b.players) || 0, max: Number(b.max) || 100, names: Array.isArray(b.names) ? b.names.map(String) : [] }));
       case "event":
         return json(await postEvent(!!b.open));
+      case "market":
+        return json(await postMarket(String(b.title ?? "Market"), Array.isArray(b.lines) ? b.lines.map(String) : []));
       case "revoke_role":
         return json(await revokeRole(String(b.mc_name ?? ""), String(b.role ?? "")));
       case "ensure_role":
