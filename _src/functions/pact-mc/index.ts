@@ -5,7 +5,8 @@
 //   link_ack {codes}           -> marks those rewarded
 //   status {online, players, max, names} -> keeps one live status message in #server-status up to date
 //   event {open}               -> posts "event starting / ended" in the events (or status) channel
-//   grant_role {mc_name, role} -> gives an allowed Discord role (e.g. Supporter) to the linked Discord user, or queues it until they /link
+//   grant_role {mc_name, role} -> gives an allowed Discord role (Supporter, Media) to the linked Discord user, or queues it until they /link
+//   revoke_role {mc_name, role} / ensure_role {role} / channels / invite {channel_id}
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const GUILD_ID = "1570168045928976556";
@@ -104,7 +105,7 @@ async function postEvent(open: boolean) {
 }
 
 // Roles the server is allowed to hand out (never staff roles).
-const GRANTABLE: Record<string, number> = { Supporter: 0xf5b301, Donator: 0xf5b301 };
+const GRANTABLE: Record<string, number> = { Supporter: 0xf5b301, Donator: 0xf5b301, Media: 0xe62117 };
 
 async function ensureRole(name: string): Promise<string | null> {
   const roles = await discord(`/guilds/${GUILD_ID}/roles`).then((r) => r.ok ? r.json() : []);
@@ -125,6 +126,18 @@ async function grantRole(mcName: string, role: string) {
   if (!roleId) return { error: "could not create role" };
   const r = await discord(`/guilds/${GUILD_ID}/members/${link.discord_user_id}/roles/${roleId}`, { method: "PUT" });
   return { granted: r.ok, status: r.status };
+}
+
+async function revokeRole(mcName: string, role: string) {
+  if (!(role in GRANTABLE)) return { error: "role not allowed" };
+  await db.from("pact_mc_pending_roles").delete().ilike("mc_name", mcName).eq("role_name", role);
+  const { data: link } = await db.from("pact_mc_links").select("discord_user_id").ilike("mc_name", mcName).not("linked_at", "is", null).maybeSingle();
+  if (!link) return { removed_pending: true };
+  const roles = await discord(`/guilds/${GUILD_ID}/roles`).then((r) => r.ok ? r.json() : []);
+  const found = roles.find((r: { name: string }) => r.name === role);
+  if (!found) return { none: true };
+  const r = await discord(`/guilds/${GUILD_ID}/members/${link.discord_user_id}/roles/${found.id}`, { method: "DELETE" });
+  return { revoked: r.ok, status: r.status };
 }
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -164,8 +177,23 @@ Deno.serve(async (req) => {
         return json(await updateStatus({ online: !!b.online, players: Number(b.players) || 0, max: Number(b.max) || 100, names: Array.isArray(b.names) ? b.names.map(String) : [] }));
       case "event":
         return json(await postEvent(!!b.open));
+      case "revoke_role":
+        return json(await revokeRole(String(b.mc_name ?? ""), String(b.role ?? "")));
+      case "ensure_role":
+        return json({ id: (String(b.role ?? "") in GRANTABLE) ? await ensureRole(String(b.role)) : null });
       case "grant_role":
         return json(await grantRole(String(b.mc_name ?? ""), String(b.role ?? "")));
+      case "channels": {
+        const r = await discord(`/guilds/${GUILD_ID}/channels`);
+        const all = await r.json();
+        return json(Array.isArray(all) ? all.map((c: { id: string; name: string; type: number; position: number; parent_id: string | null }) => ({ id: c.id, name: c.name, type: c.type, position: c.position, parent: c.parent_id })) : all);
+      }
+      case "invite": {
+        // permanent invite on a TEXT channel (an invite made from a voice channel drops people straight into the call)
+        const ch = String(b.channel_id ?? "");
+        const r = await discord(`/channels/${ch}/invites`, { method: "POST", body: JSON.stringify({ max_age: 0, max_uses: 0, unique: true }) });
+        return json({ status: r.status, invite: await r.json() });
+      }
       case "setup": {
         const st = await channels(await state());
         return json(st);

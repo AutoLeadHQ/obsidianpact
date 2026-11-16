@@ -1,7 +1,7 @@
 // Shared script for every page of obsidianpact.net: visitor analytics, Join tracking, and the content API.
 (() => {
   const API = "https://qgwbrwqyeyvrilwemtvy.supabase.co/functions/v1/pact-site";
-  const INVITE = "https://discord.gg/c9HDNeTX4z";
+  const INVITE = "https://discord.gg/P2wrDQKV2P";
 
   const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } };
   const ss = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch { return null; } };
