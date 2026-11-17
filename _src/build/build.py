@@ -71,7 +71,7 @@ page("", "The Obsidian Pact | Minecraft Server & Clan (obsidianpact.net)",
      part("home.html").replace("{INVITE}", INVITE).replace("{DISCORD_SVG}", DISCORD_SVG).replace("{REPO}", REPO),
      0, active="", script=part("home.js"), extra_head=part("home.css"))
 page("server/", "The Obsidian Pact SMP | Vanilla+ Minecraft Server IP: obsidianpact.net",
-     "The Obsidian Pact SMP is a Vanilla+ Minecraft Java survival server (26.1-26.3): /shop economy, homes, RTP queue, events, voice chat, PvP and raiding. IP: obsidianpact.net",
+     "The Obsidian Pact SMP is a Vanilla+ Minecraft survival server for Java (26.1-26.3) and Bedrock: /shop economy, homes, RTP queue, events, voice chat, PvP and raiding. Java IP: obsidianpact.net, Bedrock: play.obsidianpact.net port 25393",
      part("server.html").replace("{INVITE}", INVITE).replace("{DISCORD_SVG}", DISCORD_SVG), 1, active="server/",
      script=part("server.js"), extra_head=part("home.css") + part("server.css"))
 page("members/", "Members | The Obsidian Pact",
